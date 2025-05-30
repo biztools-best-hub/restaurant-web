@@ -1,0 +1,60 @@
+# Node modules
+node_modules/
+
+# Production build
+.next/
+out/
+dist/
+build/
+iisnode/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Optional npm cache directory
+.npm/
+
+# Output of 'next export'
+out/
+
+# Vercel deployment
+.vercel/
+
+# Mac system files
+.DS_Store
+
+# IDEs and editors
+.vscode/
+.vs
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage reports
+coverage/
+
+# Optional: local testing or debugging artifacts
+*.local
+*.log
+*.pid
+*.seed
+*.tgz

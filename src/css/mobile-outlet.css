@@ -1,0 +1,152 @@
+.mobile-outlet-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 999999;
+  width: 100vw;
+  height: calc(100vh - 80px);
+  background-color: rgba(0, 0, 0, .7);
+  display: flex;
+  overflow: hidden;
+}
+
+.mobile-outlet-content {
+  max-width: 50%;
+  min-width: 320px;
+  flex: 1;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: .1s;
+}
+
+.mobile-outlet-content.show {
+  transform: translateX(0);
+}
+
+.mobile-outlet-content .body {
+  padding: 0 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+}
+
+.mobile-outlet-content .body .table-item {
+  min-height: 50px;
+  background-color: #b2dee4;
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.mobile-outlet-content .body .table-item.disabled {
+  background-color: #f2ffff;
+  border: solid 1px #f3f3f3;
+  color: #c7c7c7;
+  cursor: default;
+}
+
+.mobile-outlet-content .body .table-item .tbl-name {
+  font-size: 20px;
+}
+
+.mobile-outlet-content .head {
+  padding: 10px;
+}
+
+.mobile-outlet-content .foot {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+.mobile-outlet-content .foot button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  flex: 1;
+}
+
+.mobile-outlet-content .foot .btn-close {
+  background-color: #ebeaea;
+}
+
+.filter-wrap {
+  display: none;
+  padding-top: 6px;
+  flex-wrap: wrap;
+}
+
+.mobile-no-tab .filter-wrap {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+}
+
+.group-val {
+  display: flex;
+  min-height: 35px;
+  background-color: #adadad;
+  color: #fff;
+  border-radius: 6px;
+  box-shadow: 1px 1px 3px #00000027;
+  margin-bottom: 1px;
+  flex: 1;
+}
+
+.group-val-text {
+  padding: 10px;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.group-val-expand {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-left: 1px solid #ededed;
+}
+
+.group-filter {
+  display: flex;
+  outline: none;
+  min-width: 280px;
+  border: none;
+  color: #666;
+  background-color: transparent;
+  box-shadow: none;
+  text-align: left;
+  flex: 1;
+}
+
+.group-opts {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background-color: #adadad;
+  color: #fff;
+  max-height: 0;
+  overflow: hidden;
+  transform: translateY(0);
+  border-radius: 4px;
+  box-shadow: 1px 1px 3px #00000027;
+  opacity: 0.0;
+  transition: .1s;
+}
+
+.group-opts.open {
+  max-height: unset;
+  transform: translateY(40px);
+  opacity: 1.0;
+}
+
+.opt {
+  padding: 10px;
+}

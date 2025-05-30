@@ -1,0 +1,112 @@
+:root {
+  --input-color: #333;
+  --input-focus-border-color: #85d2ff;
+  --btn-hover-color: #23a9f7;
+}
+
+.adult-and-child,
+.adult,
+.child,
+.adult-input-wrap,
+.adult-input-ctl,
+.child-input-ctl,
+.adult-input-ctl button,
+.child-input-ctl button,
+.child-input-wrap {
+  display: flex;
+}
+
+.adult-and-child {
+  gap: 1rem;
+}
+
+.adult,
+.child {
+  gap: 10px;
+}
+
+.adult,
+.adult-input-ctl button,
+.child-input-ctl button,
+.child {
+  align-items: center;
+}
+
+.adult-input-wrap,
+.child-input-wrap {
+  gap: 2px;
+}
+
+input.adult-input,
+input.child-input {
+  text-align: right;
+  caret-color: var(--input-color);
+  color: var(--input-color);
+  border-radius: 4px 0 0 4px;
+  max-width: 10ch;
+}
+
+input.adult-input,
+.adult-input-ctl button,
+.child-input-ctl button,
+input.child-input {
+  transition: .1s;
+}
+
+input.adult-input:focus,
+input.child-input:focus {
+  border-color: var(--input-focus-border-color);
+}
+
+.adult-input-ctl,
+.child-input-ctl {
+  flex-direction: column;
+  gap: 1px;
+}
+
+.adult-input-ctl button,
+.child-input-ctl button {
+  cursor: pointer;
+  min-width: 30px;
+  outline: none;
+  border: none;
+  flex: 1;
+  justify-content: center;
+  background-color: var(--input-focus-border-color);
+}
+
+.adult-incr,
+.child-incr {
+  border-radius: 0 4px 0 0;
+}
+
+.adult-decr,
+.child-decr {
+  border-radius: 0 0 4px 0;
+}
+
+.adult-input-ctl button:hover,
+.child-input-ctl button:hover {
+  background-color: var(--btn-hover-color);
+}
+
+.adult-child-container {
+  gap: 1rem;
+}
+
+@media screen and (max-width:820px) {
+
+  .child,
+  .child-input-wrap,
+  .adult-input-wrap,
+  .adult-input,
+  .child-input,
+  .adult {
+    flex: 1;
+  }
+
+  .adult-input,
+  .child-input {
+    max-width: unset !important;
+  }
+}
