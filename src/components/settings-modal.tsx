@@ -6,7 +6,7 @@ const SettingsModal: FC = () => {
   const { sortBy, closeSettings, showItemImage, isShowItemImage, updateMenuDisplays, updateSortBy, menuDisplays } = useSetting();
   const [showDialog, setShowDialog] = useState(false);
   const dialogClass = useMemo(() => {
-    return `settings-dialog${showDialog ? ' show' : ''}`;
+    return `settings-dialog${showDialog ? ' show' : ''}`; 
   }, [showDialog]);
   useEffect(() => {
     setShowDialog(true);
