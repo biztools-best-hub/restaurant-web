@@ -1,0 +1,45 @@
+.notification-box {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: none;
+  transition: .2s;
+  color: #fff;
+}
+
+.notification-box.hide {
+  display: none !important;
+}
+
+.notification-box.in {
+  transform: translateX(calc(-100% - 1rem)) translateY(0);
+}
+
+.notification-box.out {
+  transform: translateX(0) translateY(calc(-100% - 1rem));
+}
+
+.notification-box.info {
+  background-color: rgb(0, 128, 167);
+  /* background-color: rgb(176, 226, 255); */
+  /* color: rgb(0, 140, 150); */
+  /* border: solid 1px;
+  border-color: rgb(0, 163, 212); */
+}
+
+.notification-box.error {
+  background-color: rgb(201, 83, 83);
+}
+
+.notification-icon {
+  padding: 10px;
+  padding-right: 6px;
+  font-size: 1.2rem;
+}
+
+.notification-content {
+  padding: 10px;
+  padding-left: 0;
+  padding-right: 15px;
+}

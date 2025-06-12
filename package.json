@@ -1,0 +1,31 @@
+{
+  "name": "conicalhat-restaurant-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "build:iis": "npm i && next build && xcopy /i /s .next dist\\.next"
+  },
+  "dependencies": {
+    "conicalhat-restaurant-web": "file:",
+    "express": "^4.21.2",
+    "next": "^14.2.28",
+    "prop-types": "^15.8.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-lottie": "^1.2.10",
+    "remixicon": "^4.6.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.32",
+    "@types/react": "^18.3.20",
+    "@types/react-dom": "^18.3.7",
+    "@types/react-lottie": "^1.2.10",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,217 @@
+.float-order {
+  z-index: 999;
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - 80px);
+  background-color: #000000ab;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+
+.float-order.show {
+  display: flex;
+}
+
+.float-order-content {
+  position: absolute;
+  outline: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+  /* margin-left: -100%; */
+  max-width: 360px;
+  width: 100%;
+  background-color: #fff;
+  transform: translateX(100%);
+  transition: .1s;
+}
+
+.float-order-content.open {
+  transform: translateX(0);
+}
+
+.float-order-content .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: solid 1px #ddd;
+  max-height: fit-content;
+}
+
+.float-order-content .head .close-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: .1s;
+}
+
+.float-order-content .head .close-btn:hover {
+  background-color: #0000001a;
+}
+
+.float-order-content .head .outlet-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.float-order-content .head .outlet-info .table span {
+  font-weight: bold;
+  font-size: 2rem;
+}
+
+.float-order-content .head .outlet-info .outlet {
+  font-size: 11px;
+  color: rgb(0, 98, 128);
+}
+
+.float-order-content .body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  /* max-height: calc(100vh - 100px); */
+  overflow-y: auto;
+}
+
+.float-order-content .foot {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 10px;
+}
+
+.float-order-content .foot .summary {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 10px;
+  gap: 4px;
+  background-color: #ffe5e5;
+  border-radius: 10px;
+}
+
+.float-order-content .foot .summary div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.float-order-content .foot .summary .total {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: dashed 1px #d47f7f;
+  font-size: large;
+  color: rgb(29, 131, 156);
+}
+
+.float-order-content .foot .ctl {
+  display: flex;
+  gap: 6px 10px;
+}
+
+.float-order-content .foot .ctl button {
+  flex: 1;
+  border: none;
+  background-color: transparent;
+  min-height: 30px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  color: #fff;
+  border-radius: 10px;
+  transition: .1s;
+}
+
+.float-order-content .foot .ctl .btn-discard {
+  background-color: #eb5f5f;
+}
+
+.float-order-content .foot .ctl .btn-discard:hover {
+  background-color: #ff7b7b;
+}
+
+.float-order-content .foot .ctl .btn-keep {
+  background-color: #4c8fbb;
+}
+
+.float-order-content .foot .ctl .btn-keep:hover {
+  background-color: #64b0e2;
+}
+
+.float-order-content .foot .ctl .btn-confirm {
+  background-color: #8eb867;
+}
+
+.float-order-content .foot .ctl .btn-confirm:hover {
+  background-color: #a3d177;
+}
+
+.float-order-content .btn-print {
+  background-color: #389b9b !important;
+}
+
+.float-order-content .btn-edit {
+  background-color: #387c9b !important;
+}
+
+.float-order-content .btn-select-table {
+  background-color: #3c578a !important;
+}
+
+.float-order-content .btn-save {
+  background-color: #3b9497 !important;
+}
+
+.float-order-content .add-item-btn {
+  padding: 10px;
+  border: dashed 1px #d17000;
+  color: #d17000;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: .1s;
+  background: linear-gradient(30deg, #ffa60022, #ff000030, transparent);
+}
+
+.float-order-content .add-item-btn:hover {
+  background: linear-gradient(30deg, #ffa60083, #ff000081, transparent);
+  color: #fff;
+}
+
+.float-order-menu {
+  position: absolute;
+  flex: 1;
+  display: flex;
+  width: 100vw;
+  height: calc(100vh - 80px);
+  background-color: #fff;
+  transform: translateX(-100%);
+  transition: .2s;
+}
+
+.float-order-menu.open {
+  transform: translateX(0);
+}
+
+
+@media screen and (max-width:370px) {
+  .float-order-content {
+    max-width: 320px;
+  }
+}
+
+@media screen and (max-width:330px) {
+  .float-order-content {
+    max-width: 300px;
+  }
+}

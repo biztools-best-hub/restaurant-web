@@ -1,0 +1,244 @@
+.order-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.order-item .main-part {
+  z-index: 2;
+  border-radius: 10px;
+  background-color: #008da021;
+  flex: 1;
+  flex-direction: column;
+  display: flex;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, .2);
+}
+
+.order-item .main-part .main-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.order-item .main-part .free-item {
+  margin: 10px;
+  padding: 6px 10px;
+  margin-top: 0;
+  background-color: #f5feff;
+  box-shadow: 1px 1px 2px #00000021;
+  border-radius: 6px;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  display: flex;
+}
+
+.order-item .main-part .free-item .desc-p {
+  display: flex;
+  flex-direction: column;
+}
+
+.order-item .main-part .free-item .desc-p .desc-num {
+  font-size: 10px;
+  color: teal;
+}
+
+.order-item .modify-part {
+  z-index: 1;
+  display: flex;
+  font-size: 11px;
+  margin: 0 10px;
+}
+
+.order-item .modify-part:has(.hide-main) {
+  margin: 0;
+}
+
+.order-item .in-modify-part {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background-color: #ff33001c;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, .3);
+}
+
+.order-item .in-modify-part.hide-main {
+  border-radius: 10px;
+  background-color: #008da021;
+}
+
+.order-item .in-modify-part.hide-main .modify-item {
+  background-color: #ffffff;
+  border-color: #00b4d4;
+}
+
+.modify-item-with-ctl {
+  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.img-sect {
+  width: 68px;
+  aspect-ratio: 1/1;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, .2);
+  border-radius: 6px;
+  margin: 8px;
+}
+
+.img-bg {
+  width: 100%;
+  aspect-ratio: 1/1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  background-color: #ffffff;
+  border-radius: 6px;
+  color: #00000059;
+  position: absolute;
+}
+
+.img-view {
+  position: absolute;
+  width: 100%;
+  aspect-ratio: 1/1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.img-view img {
+  height: 100%;
+}
+
+.d-sect {
+  flex: 1;
+  padding: 10px;
+  padding-left: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.ctl-sect {
+  margin: 10px;
+}
+
+.ctl-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.overlay-order-form .ctl-container button,
+.ctl-container button {
+  border: none;
+  transition: .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 26px;
+  min-width: 26px;
+  max-height: 26px;
+  min-height: 26px;
+  cursor: pointer;
+  border-radius: 50%;
+  background-color: #d4a189;
+  font-size: 1rem;
+  outline: none;
+  color: #fff;
+}
+
+.ctl-container button:hover {
+  background-color: #b96c3f;
+}
+
+.ctl-container .ctl-add i {
+  transform: translate(-1px, -1px);
+}
+
+.ctl-container .ctl-minus i {
+  transform: translate(-1px, 1px);
+}
+
+.modify-item {
+  padding: 5px 8px;
+  background-color: #87439c1f;
+  border: solid 1px #a042bd79;
+  color: #7b42bd;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  align-items: flex-start;
+  flex: 1;
+  min-width: fit-content;
+  text-align: center;
+}
+
+.modify-item .inf-sect {
+  width: 100%;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.modify-item .remark-sect {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  color: #007e73;
+}
+
+.modify-item .remark-sect i {
+  font-size: 14px;
+  transform: translateY(2px);
+}
+
+.modify-item .remark-sect span {
+  text-decoration: underline;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.modify-item span:first-child {
+  text-align: left;
+}
+
+.btn-modify {
+  font-size: 16px;
+  border: none;
+  background-color: #a042bdaf;
+  color: #fff;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  border-radius: 50%;
+  text-transform: capitalize;
+  cursor: pointer;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  transition: .1s;
+}
+
+.btn-modify:hover {
+  background-color: #a042bdd2;
+}

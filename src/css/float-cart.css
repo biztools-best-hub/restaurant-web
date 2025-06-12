@@ -1,0 +1,41 @@
+.float-cart {
+  position: fixed;
+  bottom: calc(1rem + 135px);
+  right: 1rem;
+  display: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background-color: #016fb9;
+  border-radius: 50%;
+  box-shadow: 1px 1px 3px #00000031;
+}
+
+.mobile-no-tab .float-cart {
+  display: flex;
+}
+
+.cart-btn {
+  background-color: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 24px;
+}
+.cart-badge{
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background-color: #c73f3f;
+  color: #fff;
+  border-radius: 50%;
+  top: 18%;
+  left: 52%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 10px;
+  overflow: hidden;
+  box-shadow: none;
+}

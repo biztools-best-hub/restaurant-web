@@ -1,0 +1,20 @@
+.qty-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.qty-input {
+  color: #000 !important;
+  max-width: 400px;
+  min-width: 300px;
+  text-align: center;
+  font-size: 18px;
+  transition: .1s;
+}
+
+.qty-input:focus {
+  border: solid 1px #00b7ff;
+  box-shadow: 0 0 2px #009bd8;
+}
