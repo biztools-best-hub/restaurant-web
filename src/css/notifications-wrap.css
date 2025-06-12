@@ -1,9 +1,0 @@
-.notifications-wrap {
-  position: fixed;
-  z-index: 9999;
-  top: 1rem;
-  left: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
