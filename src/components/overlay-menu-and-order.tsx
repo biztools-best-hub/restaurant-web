@@ -22,12 +22,13 @@ import OverlayOrderForm from "./overlay-order-form";
 import PortableOutlet from "./portable-outlet";
 import DecisionsBox from "./decisions-box";
 import CompareBox from "./compare-box";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useDataFromApi } from "@/store/data.store";
 import AdultAndChildControlBox from "./adult-child-control-box";
 import { useCredential } from "@/store/credential.store";
 import { v4 } from "uuid";
 import { useNotifications } from "@/store/notifications.store";
+import QtyBox from "./qty-box";
 type OverlayMenuAndOrderProps = {
   onRemove(): void
   show: boolean
@@ -53,6 +54,8 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
 }) => {
   const [showConfirmRemove, setShowConfirmRemove] = useState<boolean>(false)
   const [currentItem, setCurrentItem] = useState<TPendingItem>();
+  const [showQty, setShowQty] = useState(false);
+  const [qtyItem, setQtyItem] = useState<TPendingItem>();
   const [byChangeTable, setByChangeTable] = useState<boolean>(false);
   const [modifyItem, setModifyItem] = useState<TPendingItem>();
   const [modifyMode, setModifyMode] = useState<'new' | 'edit'>('new')
@@ -78,7 +81,7 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
   const decisionRef = useRef<TDecisionRefs | null>(null)
   const adultAndChildRef = useRef<{ adult: number, child: number } | null>(null);
   const [showDiscard, setShowDiscard] = useState<boolean>(false)
-  const router = useRouter()
+  // const router = useRouter()
   const modifyRef = useRef<TModifyItemsViewRef | null>(null)
   const confirmRef = useRef<TConfirmRefs | null>(null)
   const overlayFormRef = useRef<TOverlayOrderFormRefs | null>(null)
@@ -87,6 +90,12 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
   const [remarkChildItem, setRemarkChildItem] = useState<TSelectedModifyItem>()
   const remarkRef = useRef<HTMLInputElement | null>(null);
   const [confirmInput, setConfirmInput] = useState<TPendingOrder>();
+  const qtyRef = useRef<{
+    getQty(): number;
+    reset(): void
+    focus(): void
+  } | null>(null);
+  const qtyAlertRef = useRef<TConfirmRefs | null>(null)
   function genNewOrder(items: (TPendingItem)[]) {
     const od = findWorkingOrder();
     if (!od) {
@@ -150,7 +159,8 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
       if (fromOnDone) return;
       if (initialEdit) {
         removeWorkingOrder()
-        router.replace(`/${fromRoute}`)
+        window.location.href = `/${fromRoute}`;
+        // router.replace(`/${fromRoute}`)
       }
     }, 200);
   }
@@ -163,7 +173,21 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
     onSave();
     close(true);
     removeWorkingOrder();
-    router.replace(`/${fromRoute}`);
+    window.location.href = `/${fromRoute}`;
+    // router.replace(`/${fromRoute}`);
+  }
+  function onQtyConfirm(itm?: TPendingItem) {
+    const qty = qtyRef.current?.getQty() ?? 0;
+    if (qty > 0) {
+      if (!itm && qtyItem) itm = qtyItem;
+      if (itm) {
+        // console.log(itm);
+        overlayFormRef.current?.addItem({ ...itm, qty }, true)
+        setQtyItem(undefined);
+      }
+    }
+    qtyRef.current?.reset();
+    setShowQty(false);
   }
   useEffect(() => {
     if (initialEdit) {
@@ -171,7 +195,12 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
         setOpeningMenu(() => true);
       }, 10);
     }
-  }, [])
+  }, []);
+  useEffect(() => {
+    if (!qtyItem) return;
+    setShowQty(true);
+    setTimeout(() => qtyRef.current?.focus(), 50);
+  }, [qtyItem])
   useEffect(() => {
     if (!modifyItem || showModify) return;
     setShowModify(() => true)
@@ -258,17 +287,26 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
             ref={menuRef}
             onSelect={(itm) => {
               if (itm.hasModifiedItemGroup) {
-                setModifyItem(() =>
-                  ({ ...itm, selectedModifyItems: [] }));
+                setModifyItem(() => ({ ...itm, selectedModifyItems: [] }));
                 setModifyMode(() => 'new')
                 return;
               }
-              overlayFormRef.current?.addItem(itm);
+              if (itm.askQty) {
+                setQtyItem(itm);
+                return;
+              }
+              overlayFormRef.current?.addItem(itm, false);
             }} />
         </div>
       </div>
       <OverlayOrderForm
         onClose={close}
+        onDecreaseOnQtyItem={itm => {
+          setQtyItem(itm);
+        }}
+        onIncreaseOnQtyItem={itm => {
+          setQtyItem(itm);
+        }}
         onRemark={(itm, child) => {
           setRemarkItem(() => itm);
           if (!!child) setRemarkChildItem(child);
@@ -299,6 +337,23 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
           setCurrentItem(() => itm);
           setShowConfirmRemove(() => true)
         }}
+      />
+      <ConfirmAlert
+        msg={<QtyBox item={qtyItem} onEnter={onQtyConfirm} onEscape={() => qtyAlertRef.current?.close()} ref={qtyRef} />}
+        ref={qtyAlertRef}
+        onConfirm={() => onQtyConfirm()}
+        onDeny={() => { }}
+        onHide={() => {
+          if (qtyItem) setQtyItem(undefined);
+          qtyRef.current?.reset();
+          setShowQty(false)
+        }}
+        confirmDisabled={false}
+        denyDisabled={true}
+        hidConfirm={false}
+        hideDeny={true}
+        show={showQty}
+        title="Modify Quantity"
       />
       <ConfirmAlert
         show={showConfirmRemove}
@@ -369,7 +424,40 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
         show={showModify}
         beforeConfirm={() => {
           if (!modifyItem || modifyMode == 'edit') return;
-          overlayFormRef.current?.addItem(modifyItem)
+          if (modifyItem.hideMainItem) {
+            const newItems: TPendingItem[] = [];
+            for (let m of modifyItem.selectedModifyItems) {
+              const od = findWorkingOrder();
+              let tg = od?.items.find(t => t.oid == m.oid);
+              if (!tg) {
+                tg = {
+                  isNew: true,
+                  askQty: false,
+                  amount: m.amount,
+                  amountPercentage: m.amountPercentage,
+                  calculateTaxBeforeDiscount: m.calculateTaxBeforeDiscount,
+                  decimalPlaces: m.decimalPlaces,
+                  hasModifiedItemGroup: false,
+                  hideFromSubGroup: false,
+                  hideMainItem: true,
+                  localSalePrice: m.localSalePrice,
+                  main: { oid: '', name: '' },
+                  name: m.name,
+                  name2: m.name2,
+                  number: m.number,
+                  oid: m.oid,
+                  qty: 1,
+                  salePrice: m.salePrice,
+                  selectedModifyItems: [],
+                  sub: { oid: '', name: "" },
+                }
+              } else tg.qty++;
+              newItems.push(tg);
+            }
+            overlayFormRef.current?.addItemBatch(newItems);
+            return;
+          }
+          overlayFormRef.current?.addItem(modifyItem, false)
         }}
         confirmDisabled={false}
         denyDisabled={false}
@@ -406,13 +494,13 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
                     const valid = t.oid == itm.oid && t.group.oid == itm.group.oid;
                     return valid;
                   });
-                  const toAdd = temp.modifyItemGroups?.find(g =>
-                    g.oid == itm.group.oid)?.items.find(ii => ii.oid == itm.oid);
+                  const toAdd = temp.modifyItemGroups?.find(g => g.oid == itm.group.oid)?.items.find(ii => ii.oid == itm.oid);
                   if (!toAdd) return;
                   if (!tg) {
                     temp.selectedModifyItems.push({ ...toAdd, group: itm.group, qty: 1 });
                   }
                   else tg.qty++;
+                  temp.hideMainItem = itm.hideMainItem;
                   setModifyItem(() => temp);
                   return;
                 };

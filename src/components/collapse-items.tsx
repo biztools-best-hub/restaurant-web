@@ -65,6 +65,7 @@ const CollapseItems = forwardRef<{
     }
     onCollapse?.();
   }, [open])
+  // useEffect(() => { console.log(item) }, [])
   return (
     <div className={`collapse-items${open ? ' open' : ''}`} onClick={(e: any) => {
       if (e.target.classList.contains('itm')) return;
@@ -133,7 +134,7 @@ const CollapseItems = forwardRef<{
                 height: '100%',
                 padding: 10
               }}>
-                {optimizePrice(v,true)}
+                {optimizePrice(v, true)}
               </div>
               <div className="k-item-ctl itm">
                 <button type="button" className="btn-k-incr itm incr" onClick={() => {
@@ -148,8 +149,12 @@ const CollapseItems = forwardRef<{
                     if (!tg) return [...ls, { ...v, group: item.oid, qty: 1 }]
                     tg.qty++;
                     return [...temp]
+                  });
+                  onAdd({
+                    ...v,
+                    hideMainItem: item.hideMainItem,
+                    group: { oid: item.oid, name: item.name }
                   })
-                  onAdd({ ...v, group: { oid: item.oid, name: item.name } })
                 }}>
                   <i className="ri-arrow-up-s-fill itm incr"></i>
                 </button>

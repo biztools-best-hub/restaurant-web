@@ -19,7 +19,7 @@ import ModifyItemsView from "@/components/modify-items-view";
 import { delay, exist, optimizeName, optimizePrice } from "@/utilities";
 import { useDataFromApi } from "@/store/data.store";
 import ImageBox from "@/components/image-box";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useOrders } from "@/store/orders.store";
 import noItemsAnimation from '@/animations/no-items.json';
 import Lottie, { Options } from "react-lottie";
@@ -35,6 +35,7 @@ import PortableOutlet from "./portable-outlet";
 import AdultAndChildControlBox from "./adult-child-control-box";
 import { useTopBar } from "@/store/top-bar.store";
 import { useNotifications } from "@/store/notifications.store";
+import QtyBox from "./qty-box";
 type THomeProps = {
   initialOpen: boolean
 }
@@ -76,7 +77,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
     animationData: noItemsAnimation,
     rendererSettings: { preserveAspectRatio: 'xMidYMid slice' }
   }
-  const { sortBy, isShowItemImage, menuDisplays, onUpdateSort } = useSetting();
+  const { sortBy, isShowItemImage, isMobileNotTab, menuDisplays, onUpdateSort } = useSetting();
   const selectTableConfirmRef = useRef<TConfirmRefs | null>(null)
   const { user } = useCredential();
   const searchRef = useRef<({ value: string, reset(): void, search(sort?: 'name' | 'number'): void }) | null>(null);
@@ -87,6 +88,15 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   const [showModify, setShowModify] = useState<boolean>(false);
   const [searching, setSearching] = useState<boolean>(initialOpen && !!getSearchItem() && !searchItems);
   const { addNotification } = useNotifications();
+  const qtyRef = useRef<{
+    getQty(): number
+    // onEnter(fn: () => void): void
+    // onEscape(fn: () => void): void
+    focus(): void,
+    reset(): void
+  } | null>(null)
+  const [showQty, setShowQty] = useState(false)
+  const [qtyItem, setQtyItem] = useState<{ item: TMenuItem | TPendingItem, from: string }>();
   const [confirmRemoveParams, setConfirmRemoveParams] = useState<{
     item: TPendingItem
     mode: 'item' | 'order'
@@ -108,13 +118,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   const remarkRef = useRef<HTMLInputElement | null>(null);
   const [remarkItem, setRemarkItem] = useState<TPendingItem>();
   const [remarkChildItem, setRemarkChildItem] = useState<TSelectedModifyItem>();
-  const [currentGroup, setCurrentGroup] = useState<string | undefined>(
-    initialOpen ? findWorkingGroup() ?? itemData?.[0]?.oid :
-      (fetched ? itemData?.[0]?.oid : undefined))
-  const [currentSub, setCurrentSub] = useState<string | undefined>(
-    initialOpen ? findWorkingSub() ?? (currentGroup ? itemData?.find(g =>
-      g.oid == currentGroup) : itemData?.[0])?.subGroups?.[0]?.oid :
-      (fetched ? itemData?.[0]?.subGroups?.[0]?.oid : undefined))
+  const [currentGroup, setCurrentGroup] = useState<string | undefined>()
+  const [currentSub, setCurrentSub] = useState<string | undefined>()
   const [groups, setGroups] = useState<TDataGroup[]>(fetched ?
     itemData?.map(g =>
       ({ oid: g.oid, name: g.name, name2: g.name2 })) ?? [] : [])
@@ -122,7 +127,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
     (((!!currentGroup ? itemData?.find(g => g.oid == currentGroup) :
       itemData?.[0])?.subGroups?.map(s =>
         ({ oid: s.oid, name: s.name, name2: s.name2 }))) ?? []) : [])
-  const router = useRouter();
+  // const router = useRouter();
   const [currentOutlet, setCurrentOutlet] = useState<{
     oid: string
     outlet: {
@@ -140,22 +145,119 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   const [currentOpenItem, setCurrentOpenItem] = useState<TPendingItem>()
   const [currentSelectedModifyItems, setCurrentSelectedModifyItems] = useState<TSelectedModifyItem[]>([])
   const [showModifyItems, setModifyItems] = useState<boolean>(false)
+  const qtyAlertRef = useRef<TConfirmRefs | null>(null);
   const groupFilterRef = useRef<HTMLButtonElement | null>(null);
   const subFilterRef = useRef<HTMLButtonElement | null>(null);
   const longestGroupRef = useRef<HTMLDivElement | null>(null);
   const longestSubRef = useRef<HTMLDivElement | null>(null);
   const floatCartRef = useRef<({ reload(): void }) | null>(null)
   const floatOrderRef = useRef<({ reload(): void }) | null>(null)
-  const onAddItemRef = useRef<((itm: TPendingItem) => void)>(() => { })
+  const onAddItemRef = useRef<((itm: TPendingItem, isQtyItem: boolean) => void)>(() => { })
+  const onAddItemBatchRef = useRef<((itemList: TPendingItem[]) => void)>(() => { });
   const indicatorRef = useRef<HTMLDivElement | null>(null)
   const modifyRef = useRef<TModifyItemsViewRef | null>(null)
   const modifyByEditRef = useRef<TModifyItemsViewRef | null>(null)
   const mainEls = useRef<({ oid: string, el: HTMLDivElement | null })[]>(fetched ?
     itemData?.map(d => ({ oid: d.oid, el: null, hasImage: false })) ?? [] : [])
-  const registerOnAddItem = (fn: (itm: TPendingItem) => void) => {
+  const registerOnAddItem = (fn: (itm: TPendingItem, isQtyItem: boolean) => void) => {
     onAddItemRef.current = fn
   }
+  const registerOnAddItemBatch = (fn: (itemList: TPendingItem[]) => void) => {
+    onAddItemBatchRef.current = fn;
+  }
   const afterModifyRef = useRef<() => void>()
+  function onQtyConfirm(itm?: { item: TMenuItem | TPendingItem, from: string }) {
+    if (!itm && qtyItem) itm = qtyItem;
+    const qty = qtyRef.current?.getQty() ?? 0;
+    if (qty <= 0) {
+      setShowQty(() => false)
+      qtyRef.current?.reset();
+      return;
+    }
+    if (itm) {
+      if (itm.from == "search-menu") {
+        let ip: TPendingItem;
+        const input: TPendingItem = {
+          modifyItemGroups: itm.item.modifyItemGroups,
+          hideMainItem: false,
+          askQty: itm.item.askQty,
+          main: {
+            oid: currentGroup!,
+            name: groups.find(g => g.oid == currentGroup)!.name
+          },
+          sub: {
+            oid: currentSub!,
+            name: subs.find(s => s.oid == currentSub)!.name
+          },
+          itemPromotion: itm.item.itemPromotion,
+          name: itm.item.name,
+          number: itm.item.number,
+          name2: itm.item.name2,
+          oid: itm.item.oid,
+          qty,
+          salePrice: itm.item.salePrice,
+          selectedModifyItems: itm.item.selectedModifyItems,
+          localSalePrice: itm.item.localSalePrice,
+          hideFromSubGroup: itm.item.hideFromSubGroup,
+          hasModifiedItemGroup: itm.item.hasModifiedItemGroup,
+        }
+        ip = input;
+        onAddItemRef.current(ip, true);
+        floatCartRef.current?.reload();
+        floatOrderRef.current?.reload();
+        setShowQty(() => false)
+        qtyRef.current?.reset();
+        if (!initialOpen) {
+          //  router.push('/doing-order')
+          window.location.href = '/doing-order';
+        }
+        return;
+      } else if (itm.from == "normal-menu") {
+        saveCurrentItem(itm.item.oid);
+        let ip: TPendingItem;
+        const input: TPendingItem = {
+          modifyItemGroups: itm.item.modifyItemGroups,
+          askQty: itm.item.askQty,
+          hideMainItem: false,
+          main: {
+            oid: currentGroup!,
+            name: groups.find(g => g.oid == currentGroup)!.name
+          },
+          sub: {
+            oid: currentSub!,
+            name: subs.find(s => s.oid == currentSub)!.name
+          },
+          itemPromotion: itm.item.itemPromotion,
+          name: itm.item.name,
+          number: itm.item.number,
+          name2: itm.item.name2,
+          oid: itm.item.oid,
+          qty,
+          salePrice: itm.item.salePrice,
+          selectedModifyItems: itm.item.selectedModifyItems,
+          localSalePrice: itm.item.localSalePrice,
+          hideFromSubGroup: itm.item.hideFromSubGroup,
+          hasModifiedItemGroup: itm.item.hasModifiedItemGroup,
+        }
+        ip = input;
+        onAddItemRef.current(ip, true);
+        floatCartRef.current?.reload();
+        floatOrderRef.current?.reload();
+        if (!initialOpen) {
+          // router.push('/doing-order');
+          window.location.href = '/doing-order';
+        }
+      } else if (itm.from == "from-item") {
+        const x = itm.item as TPendingItem;
+        x.qty = qty;
+        onAddItemRef.current(x, true);
+        floatCartRef.current?.reload();
+        floatOrderRef.current?.reload();
+      }
+    }
+    setShowQty(() => false)
+    qtyRef.current?.reset();
+  }
   function genNewOrder(items: (TPendingItem)[]) {
     const order = findWorkingOrder();
     if (!order) {
@@ -242,7 +344,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   useEffect(() => {
     if (!init) return;
     if (currentGroup) {
-      putWorkingGroup(currentGroup)
+      putWorkingGroup(currentGroup, "home page - current group checking use effect")
     }
     else removeWorkingGroup()
     if (!currentGroup) return;
@@ -276,6 +378,12 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
     }
   }
   useEffect(() => {
+    if (!qtyItem) return;
+    // setQItem(() => ({ ...qtyItem }))
+    setShowQty(true);
+    setTimeout(() => qtyRef.current?.focus(), 100);
+  }, [qtyItem])
+  useEffect(() => {
     if (subs.length > 0) {
       adjustSubWidth();
     }
@@ -294,7 +402,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   }, [confirmRemoveParams])
   useEffect(() => {
     if (fetching || !init) return;
-    if (currentSub) putWorkingSub(currentSub);
+    if (currentSub) putWorkingSub(currentSub, "home page - check current sub use effect");
     else removeWorkingSub();
     const g = itemData?.find(g => g.oid == currentGroup);
     const sub = g?.subGroups?.find(s => s.oid == currentSub);
@@ -367,26 +475,42 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
     setShowSearchList(() => true);
   }
   useEffect(() => {
+    // qtyRef.current?.onEnter(() => {
+    //   qtyAlertRef.current?.confirm();
+    // });
+    // qtyRef.current?.onEscape(() => {
+    //   qtyAlertRef.current?.close();
+    // });
+    let gr: string | undefined;
+    let sb: string | undefined;
+    if (!currentGroup) {
+      gr = findWorkingGroup();
+      setCurrentGroup(gr);
+    } else gr = currentGroup;
+    if (!currentSub) {
+      sb = findWorkingSub();
+      setCurrentSub(sb);
+    } else sb = currentSub;
     onSearch(doSearch);
     if (!!searchValue) {
       if (initialOpen) doSearch(searchValue);
       else clearSearch()
     }
-    if (!fetched || (!initialOpen && !itemData?.[0]?.subGroups)) {
-      fetchData(currentGroup, currentSub, data => {
-        setGroups(() => data.map(d =>
-        ({
-          oid: d.oid,
-          name: d.name,
-          name2: d.name2
-        })))
-        if (!currentGroup) setCurrentGroup(() => data[0]?.oid);
-        const g = currentGroup ? data.find(g => g.oid == currentGroup) : data[0];
-        setSubs(() => g?.subGroups ?? [])
-        if (!currentSub) setCurrentSub(() => g?.subGroups?.[0]?.oid ?? 'no-sub');
-        mainEls.current = data.map(d => ({ oid: d.oid, el: null, hasImage: false }));
-      });
-    }
+    // if (!fetched || (!itemData?.[0]?.subGroups)) {
+    fetchData(gr, sb, data => {
+      setGroups(() => data.map(d =>
+      ({
+        oid: d.oid,
+        name: d.name,
+        name2: d.name2
+      })))
+      if (!gr) setCurrentGroup(() => data[0]?.oid);
+      const g = gr ? data.find(g => g.oid == gr) : data[0];
+      setSubs(() => g?.subGroups ?? [])
+      if (!sb) setCurrentSub(() => g?.subGroups?.[0]?.oid ?? 'no-sub');
+      mainEls.current = data.map(d => ({ oid: d.oid, el: null, hasImage: false }));
+    });
+    // }
     if (initialOpen) {
       setOpenOrder(() => true);
       const order = findWorkingOrder();
@@ -547,9 +671,14 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                       const onClick = (_: any) => {
                         setCurrentItem(() => itm.oid);
                         saveCurrentItem(itm.oid);
+                        if (itm.askQty) {
+                          setQtyItem({ item: itm, from: "search-menu" });
+                          return;
+                        }
                         if (itm.hasModifiedItemGroup) {
                           setCurrentItemToModify(() => ({
                             ...itm,
+                            hideMainItem: itm.modifyItemGroups?.some(v => v.hideMainItem) ?? false,
                             selectedModifyItems: [],
                             sub: {
                               oid: currentSub!,
@@ -566,6 +695,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                         let ip: TPendingItem;
                         const input: TPendingItem = {
                           modifyItemGroups: itm.modifyItemGroups,
+                          askQty: itm.askQty,
+                          hideMainItem: false,
                           main: {
                             oid: currentGroup!,
                             name: groups.find(g => g.oid == currentGroup)!.name
@@ -587,10 +718,13 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                           hasModifiedItemGroup: itm.hasModifiedItemGroup,
                         }
                         ip = input;
-                        onAddItemRef.current(ip)
+                        onAddItemRef.current(ip, false)
                         floatCartRef.current?.reload();
                         floatOrderRef.current?.reload();
-                        if (!initialOpen) router.push('/doing-order')
+                        if (!initialOpen) {
+                          //  router.push('/doing-order')
+                          window.location.href = '/doing-order';
+                        }
                       }
                       return <div
                         key={itm.oid}
@@ -679,6 +813,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                             if (itm.hasModifiedItemGroup) {
                               setCurrentItemToModify(() => ({
                                 ...itm,
+                                hideMainItem: itm.modifyItemGroups?.some(v => v.hideMainItem) ?? false,
                                 selectedModifyItems: [],
                                 sub: {
                                   oid: currentSub!,
@@ -692,9 +827,18 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                               }))
                               return;
                             }
+                            if (itm.askQty) {
+                              // setShowQty(true);
+                              // setTimeout(() => qtyRef.current?.focus(), 100);
+                              setQtyItem({ item: itm, from: "normal-menu" });
+                              // setQtyFrom("normal-menu");
+                              return;
+                            }
                             let ip: TPendingItem;
                             const input: TPendingItem = {
                               modifyItemGroups: itm.modifyItemGroups,
+                              askQty: itm.askQty,
+                              hideMainItem: false,
                               main: {
                                 oid: currentGroup!,
                                 name: groups.find(g => g.oid == currentGroup)!.name
@@ -716,10 +860,13 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                               hasModifiedItemGroup: itm.hasModifiedItemGroup,
                             }
                             ip = input;
-                            onAddItemRef.current(ip);
+                            onAddItemRef.current(ip, false);
                             floatCartRef.current?.reload();
                             floatOrderRef.current?.reload();
-                            if (!initialOpen) router.push('/doing-order')
+                            if (!initialOpen) {
+                              window.location.href = '/doing-order';
+                              //  router.push('/doing-order')
+                            }
                           }
                           return <div
                             key={itm.oid}
@@ -813,47 +960,48 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
         </div>
       </div >
       <FloatCart onClick={() => { setShowFloatOrder(() => true) }} ref={floatCartRef} />
-      <FloatOrderForm
-        onStartRemove={(p) => {
-          setConfirmRemoveParams(p);
-        }}
-        onRemark={(itm, c) => {
-          setRemarkItem(itm);
-          if (!!c) setRemarkChildItem(c);
-        }}
-        enableOuterPrint={false}
-        onAction={(mode, nextJob, modifyItem) => {
-          const needUpdate = itemData?.some(g => g.subGroups?.some(s =>
-            s.items?.some(v => v.open)));
-          console.log(needUpdate);
-          if (needUpdate) {
-            const temp = [...itemData ?? []]
-            for (let i = 0; i < (itemData?.length ?? 0); i++) {
-              const g = temp[i];
-              if (!g.subGroups || g.subGroups.length < 1) continue;
-              for (let j = 0; j < g.subGroups.length; j++) {
-                const s = g.subGroups[j];
-                if (!s.items || s.items.length < 1) continue;
-                for (let x = 0; x < s.items.length; x++) {
-                  if (!s.items[x].open) continue
-                  s.items[x].open = false;
+      {isMobileNotTab &&
+        <FloatOrderForm
+          onStartRemove={(p) => {
+            setConfirmRemoveParams(p);
+          }}
+          onRemark={(itm, c) => {
+            setRemarkItem(itm);
+            if (!!c) setRemarkChildItem(c);
+          }}
+          enableOuterPrint={false}
+          onAction={(mode, nextJob, modifyItem) => {
+            const needUpdate = itemData?.some(g => g.subGroups?.some(s =>
+              s.items?.some(v => v.open)));
+            if (needUpdate) {
+              const temp = [...itemData ?? []]
+              for (let i = 0; i < (itemData?.length ?? 0); i++) {
+                const g = temp[i];
+                if (!g.subGroups || g.subGroups.length < 1) continue;
+                for (let j = 0; j < g.subGroups.length; j++) {
+                  const s = g.subGroups[j];
+                  if (!s.items || s.items.length < 1) continue;
+                  for (let x = 0; x < s.items.length; x++) {
+                    if (!s.items[x].open) continue
+                    s.items[x].open = false;
+                  }
                 }
               }
+              updateItemData(temp)
             }
-            updateItemData(temp)
-          }
-          setNextModeAfterTable(() => mode);
-          if (nextJob == 'show-tables') {
-            setShowTableSelection(() => true);
-          } else if (nextJob == 'show-dismiss') {
-            setShowAlertDismissOrder(() => true);
-          } else if (!!modifyItem) setItemToModify(() => modifyItem)
-        }}
-        onStateChanged={() => floatCartRef.current?.reload()}
-        show={showFloatOrder}
-        ref={floatOrderRef}
-        onClose={() => setShowFloatOrder(() => false)}
-        fromOrdersPage={false} />
+            setNextModeAfterTable(() => mode);
+            if (nextJob == 'show-tables') {
+              setShowTableSelection(() => true);
+            } else if (nextJob == 'show-dismiss') {
+              setShowAlertDismissOrder(() => true);
+            } else if (!!modifyItem) setItemToModify(() => modifyItem)
+          }}
+          onStateChanged={() => floatCartRef.current?.reload()}
+          show={showFloatOrder}
+          ref={floatOrderRef}
+          onClose={() => setShowFloatOrder(() => false)}
+          fromOrdersPage={false} />
+      }
       {!fetching && !inFetching && (itemData?.length ?? 0) > 0 &&
         <FloatSearch ref={searchRef} initialOpen={initialOpen && !!getSearchItem()} beforeSearch={empty => {
           if (empty) {
@@ -869,6 +1017,12 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
       }
       <OrderForm
         open={openOrder}
+        onDecreaseQtyItem={itm => {
+          setQtyItem({ item: itm, from: "from-item" });
+        }}
+        onIncreaseQtyItem={(itm => {
+          setQtyItem({ item: itm, from: "from-item" });
+        })}
         afterModify={fn => afterModifyRef.current = fn}
         onAction={(mode, nextJob, modifyItem) => {
           const needUpdate = itemData?.some(g => g.subGroups?.some(s =>
@@ -896,38 +1050,65 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
             setShowAlertDismissOrder(() => true);
           } else if (!!modifyItem) setItemToModify(modifyItem);
         }}
-        onHide={() => { router.replace('/') }}
+        onHide={() => {
+          window.location.href = "/"
+          // router.replace('/')
+        }}
+        onInputBatch={registerOnAddItemBatch}
         onInput={registerOnAddItem}
         isNew={!initialOpen}
       />
+      <ConfirmAlert
+        msg={
+          <QtyBox
+            onEnter={onQtyConfirm}
+            item={qtyItem}
+            onEscape={() => qtyAlertRef.current?.close()}
+            ref={qtyRef} />}
+        show={showQty}
+        ref={qtyAlertRef}
+        onHide={() => {
+          setShowQty(() => false)
+          qtyRef.current?.reset();
+        }}
+        title="Modify Quantity"
+        confirmDisabled={false}
+        denyDisabled={true}
+        onConfirm={() => onQtyConfirm()}
+        hidConfirm={false}
+        onDeny={() => { }}
+        hideDeny={true} />
       <ConfirmAlert
         msg={<div style={{ display: 'flex', position: 'relative', flex: 1 }}>
           {currentItemToModify &&
             <ModifyItemsView
               onAdd={async itm => {
                 await delay(50)
-                setCurrentSelectedModifyItems(p => {
-                  if (p.length < 1) return [{ ...itm, qty: 1 }]
-                  const temp = [...p]
-                  const tg = temp.find(x =>
-                    x.group.oid == itm.group.oid && x.oid == itm.oid);
-                  if (!tg) return [...temp, { ...itm, qty: 1 }]
-                  tg.qty++;
-                  return [...temp]
-                })
+                let temp = [...currentSelectedModifyItems];
+                if (temp.length < 1) temp = [{ ...itm, qty: 1 }]
+                else {
+                  const tg = temp.find(x => x.group.oid == itm.group.oid && x.oid == itm.oid);
+                  if (!tg) temp = [...temp, { ...itm, qty: 1 }];
+                  else {
+                    tg.hideMainItem = itm.hideMainItem;
+                    tg.qty++;
+                  }
+                }
+                setCurrentSelectedModifyItems(temp);
+                // }
               }}
               onRemove={async itm => {
                 await delay(50)
-                setCurrentSelectedModifyItems(p => {
-                  if (p.length < 1) return []
-                  const temp = [...p];
-                  const tg = temp.find(x =>
-                    x.group.oid == itm.group && x.oid == itm.item);
-                  if (!tg) return [...temp]
-                  if (tg.qty < 2) return temp.filter(t =>
-                    t.group.oid == itm.group && t.oid == itm.item);
-                  tg.qty--;
-                  return [...temp];
+                if (currentSelectedModifyItems.length < 1) return;
+                let temp = [...currentSelectedModifyItems];
+                const tg = temp.find(x =>
+                  x.group.oid == itm.group && x.oid == itm.item);
+                if (!tg) temp = [...temp]
+                else if (tg.qty < 2) temp = temp.filter(t =>
+                  t.group.oid == itm.group && t.oid == itm.item);
+                else tg.qty--;
+                setCurrentSelectedModifyItems(() => {
+                  return temp;
                 })
               }}
               item={currentItemToModify}
@@ -953,55 +1134,89 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
         </div>}
         beforeConfirm={async () => {
           if (!currentItemToModify) return;
-          await delay(100)
+          await delay(100);
           const temp = [...itemData ?? []];
-          for (let i = 0; i < temp.length; i++) {
-            const g = temp[i];
-            if (g.oid != currentGroup || !g.subGroups ||
-              g.subGroups!.length < 1) continue
-            for (let j = 0; j < g.subGroups!.length; j++) {
-              const s = g.subGroups![j];
-              if (s.oid != currentSub || !s.items ||
-                s.items!.length < 1) continue
-              for (let x = 0; x < s.items!.length; x++) {
-                const v = s.items![x];
-                if (!v.hasModifiedItemGroup ||
-                  v.oid != currentItemToModify?.oid) continue
-                v.selectedModifyItems = [...currentSelectedModifyItems]
+          if (!currentSelectedModifyItems.some(v => v.hideMainItem)) {
+            for (let i = 0; i < temp.length; i++) {
+              const g = temp[i];
+              if (g.oid != currentGroup || !g.subGroups ||
+                g.subGroups!.length < 1) continue
+              for (let j = 0; j < g.subGroups!.length; j++) {
+                const s = g.subGroups![j];
+                if (s.oid != currentSub || !s.items ||
+                  s.items!.length < 1) continue
+                for (let x = 0; x < s.items!.length; x++) {
+                  const v = s.items![x];
+                  if (!v.hasModifiedItemGroup ||
+                    v.oid != currentItemToModify?.oid) continue
+                  v.selectedModifyItems = [...currentSelectedModifyItems]
+                  break;
+                }
                 break;
               }
               break;
             }
-            break;
+            const input: TPendingItem = {
+              ...currentItemToModify,
+              main: {
+                oid: currentGroup!,
+                name: groups.find(g => g.oid == currentGroup)!.name
+              },
+              sub: {
+                oid: currentSub!,
+                name: subs.find(s => s.oid == currentSub)!.name
+              },
+              oid: currentItemToModify.oid,
+              hasModifiedItemGroup: currentItemToModify.hasModifiedItemGroup,
+              hideFromSubGroup: currentItemToModify.hideFromSubGroup,
+              localSalePrice: currentItemToModify.localSalePrice,
+              salePrice: currentItemToModify.salePrice,
+              modifyItemGroups: currentItemToModify.modifyItemGroups,
+              name: currentItemToModify.name,
+              number: currentItemToModify.number,
+              name2: currentItemToModify.name2,
+              qty: 1,
+              selectedModifyItems: currentSelectedModifyItems,
+            };
+            onAddItemRef.current(input, true)
+          } else {
+            const newItems: TPendingItem[] = [];
+            for (let m of currentSelectedModifyItems) {
+              const ip: TPendingItem = {
+                isNew: true,
+                askQty: false,
+                amount: m.amount,
+                amountPercentage: m.amountPercentage,
+                calculateTaxBeforeDiscount: m.calculateTaxBeforeDiscount,
+                decimalPlaces: m.decimalPlaces,
+                hasModifiedItemGroup: false,
+                hideFromSubGroup: false,
+                hideMainItem: true,
+                localSalePrice: m.localSalePrice,
+                main: { oid: '', name: '' },
+                name: m.name,
+                name2: m.name2,
+                number: m.number,
+                oid: m.oid,
+                qty: 1,
+                salePrice: m.salePrice,
+                selectedModifyItems: [],
+                sub: { oid: '', name: "" },
+              }
+              // onAddItemRef.current(ip, true)
+              temp.push(ip);
+              newItems.push(ip);
+            }
+            onAddItemBatchRef.current(newItems);
           }
-          const input: TPendingItem = {
-            ...currentItemToModify,
-            main: {
-              oid: currentGroup!,
-              name: groups.find(g => g.oid == currentGroup)!.name
-            },
-            sub: {
-              oid: currentSub!,
-              name: subs.find(s => s.oid == currentSub)!.name
-            },
-            oid: currentItemToModify.oid,
-            hasModifiedItemGroup: currentItemToModify.hasModifiedItemGroup,
-            hideFromSubGroup: currentItemToModify.hideFromSubGroup,
-            localSalePrice: currentItemToModify.localSalePrice,
-            salePrice: currentItemToModify.salePrice,
-            modifyItemGroups: currentItemToModify.modifyItemGroups,
-            name: currentItemToModify.name,
-            number: currentItemToModify.number,
-            name2: currentItemToModify.name2,
-            qty: 1,
-            selectedModifyItems: currentSelectedModifyItems,
-          };
-          onAddItemRef.current(input)
           updateItemData(temp)
           setCurrentSelectedModifyItems(() => [])
           floatCartRef.current?.reload();
           floatOrderRef.current?.reload();
-          if (!initialOpen) router.push('/doing-order')
+          if (!initialOpen) {
+            //  router.push('/doing-order')
+            window.location.href = '/doing-order';
+          }
           onClose();
           return;
         }}
@@ -1075,7 +1290,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
         onConfirm={() => {
           if (confirmRemoveParams?.mode == 'order') {
             setConfirmRemoveParams(() => undefined);
-            router.replace("/");
+            window.location.href = "/"
+            // router.replace("/");
           }
         }}
         onDeny={() => { }}
@@ -1125,6 +1341,20 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
             open={showTableSelection}
             forConfirm={nextModeAfterTable == 'confirm'}
             onSelect={({ table, outlet }) => {
+              const adult = adultAndChildRef.current?.adult ?? 0;
+              const child = adultAndChildRef.current?.child ?? 0;
+              if (adult <= 0 && child <= 0) {
+                const notifyParams: TNotificationModel = {
+                  type: 'error',
+                  autoClose: true,
+                  duration: 5000,
+                  content: 'Adult or Child information is required!',
+                  id: v4(),
+                  isShowing: true
+                }
+                addNotification(notifyParams);
+                return;
+              }
               setCurrentOutlet(() => ({ outlet, table, oid: '' }))
             }} />
           {nextModeAfterTable == 'confirm' &&
@@ -1151,7 +1381,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                     removeWorkingSub()
                     removeWorkingOrder();
                     setShowTableSelection(() => false)
-                    router.replace('/')
+                    window.location.href = "/"
+                    // router.replace('/')
                   });
                 }}>
                 {confirmingOrder ?
@@ -1228,7 +1459,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
               removeWorkingGroup()
               removeWorkingSub()
               setShowTableSelection(() => false)
-              router.replace('/')
+              window.location.href = "/"
+              // router.replace('/')
             });
             return;
           }
@@ -1257,7 +1489,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           removeWorkingOrder();
           removeWorkingGroup()
           removeWorkingSub()
-          router.replace('/')
+          window.location.href = "/"
+          // router.replace('/')
         }}
         beforeDeny={() => {
           if (nextModeAfterTable == 'confirm') return;
@@ -1266,7 +1499,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           removeWorkingOrder();
           removeWorkingGroup();
           removeWorkingSub();
-          router.replace('/')
+          window.location.href = "/"
+          // router.replace('/')
         }}
         onDeny={() => setShowTableSelection(false)}
       />
@@ -1285,7 +1519,8 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           removeWorkingSub();
           setCurrentOutlet(() => undefined)
           setShowAlertDismissOrder(false);
-          router.replace('/');
+          window.location.href = "/"
+          // router.replace('/');
         }}
         denyDisabled={false}
         confirmDisabled={false}
@@ -1300,21 +1535,43 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                 if (!order) return;
                 await delay(10);
                 let items = [...order.items];
-                console.log({
-                  items,
-                  itemToModify
-                })
-                const tgItem = items.find(t => exist(t, itemToModify));
-                if (!tgItem) return;
-                const tg = tgItem.selectedModifyItems?.find(t =>
-                  t.oid == itm.oid && t.group.oid == itm.group.oid);
-                if (!tg) tgItem.selectedModifyItems?.push({
-                  ...itm,
-                  group: itm.group,
-                  qty: 1
-                });
-                else tg.qty++;
-                setItemToModify(() => tgItem);
+                if (itm.hideMainItem) {
+                  const tgItem = items.find(t => t.oid == itm.oid);
+                  if (!tgItem) items.push({
+                    isNew: true,
+                    askQty: false,
+                    amount: itm.amount,
+                    amountPercentage: itm.amountPercentage,
+                    calculateTaxBeforeDiscount: itm.calculateTaxBeforeDiscount,
+                    decimalPlaces: itm.decimalPlaces,
+                    hasModifiedItemGroup: false,
+                    hideFromSubGroup: false,
+                    hideMainItem: true,
+                    localSalePrice: itm.localSalePrice,
+                    main: { oid: '', name: '' },
+                    name: itm.name,
+                    name2: itm.name2,
+                    number: itm.number,
+                    oid: itm.oid,
+                    qty: 1,
+                    salePrice: itm.salePrice,
+                    selectedModifyItems: [],
+                    sub: { oid: '', name: "" },
+                  });
+                  else tgItem.qty++;
+                } else {
+                  const tgItem = items.find(t => exist(t, itemToModify));
+                  if (!tgItem) return;
+                  const tg = tgItem.selectedModifyItems?.find(t =>
+                    t.oid == itm.oid && t.group.oid == itm.group.oid);
+                  if (!tg) tgItem.selectedModifyItems?.push({
+                    ...itm,
+                    group: itm.group,
+                    qty: 1
+                  });
+                  else tg.qty++;
+                  setItemToModify(() => tgItem);
+                }
                 const o = genNewOrder(items);
                 if (!o) return;
                 putWorkingOrder(o);

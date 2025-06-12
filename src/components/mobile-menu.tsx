@@ -39,12 +39,10 @@ const MobileMenu = forwardRef<{ floatCart: ({ reload: () => void }) | null }, {
     searchItem,
     fetchDataBySection } = useDataFromApi();
   const [init, setInit] = useState<boolean>(false)
-  const { putWorkingSub, removeWorkingGroup, removeWorkingSub, putWorkingGroup } = useOrders()
+  const { putWorkingSub, removeWorkingGroup, removeWorkingSub, putWorkingGroup, findWorkingGroup, findWorkingSub } = useOrders()
   const searchRef = useRef<HTMLInputElement | null>(null)
-  const [currentGroup, setCurrentGroup] = useState<string | undefined>(
-    (fetched ? itemData?.[0]?.oid : undefined));
-  const [currentSub, setCurrentSub] = useState<string | undefined>(
-    (fetched ? itemData?.[0]?.subGroups?.[0]?.oid : undefined));
+  const [currentGroup, setCurrentGroup] = useState<string | undefined>();
+  const [currentSub, setCurrentSub] = useState<string | undefined>();
   const [groups, setGroups] = useState<TDataGroup[]>(fetched ?
     itemData?.map(g =>
       ({ oid: g.oid, name: g.name, name2: g.name2 })) ?? [] : []);
@@ -113,7 +111,7 @@ const MobileMenu = forwardRef<{ floatCart: ({ reload: () => void }) | null }, {
   }, [groups, groups.length]);
   useEffect(() => {
     if (!init) return;
-    if (!!currentGroup) putWorkingGroup(currentGroup)
+    if (!!currentGroup) putWorkingGroup(currentGroup, "mobile menu screen - check current group use effect")
     else removeWorkingGroup()
     if (!currentGroup) return;
     const g = itemData?.find(g => g.oid == currentGroup);
@@ -121,10 +119,9 @@ const MobileMenu = forwardRef<{ floatCart: ({ reload: () => void }) | null }, {
     setCurrentSub(() => s?.oid);
     setSubs(() => g?.subGroups ?? [])
   }, [currentGroup])
-
   useEffect(() => {
     if (fetching || !init) return;
-    if (currentSub) putWorkingSub(currentSub);
+    if (currentSub) putWorkingSub(currentSub, "mobile menu screen - check current sub use effect");
     else removeWorkingSub();
     const g = itemData?.find(g => g.oid == currentGroup);
     const sub = g?.subGroups?.find(s => s.oid == currentSub);
@@ -152,25 +149,37 @@ const MobileMenu = forwardRef<{ floatCart: ({ reload: () => void }) | null }, {
       setSubs(() => [...filterSubs])
     })
   }, [currentSub])
-
   useEffect(() => {
-    if (!fetched || !itemData?.[0]?.subGroups) {
-      fetchData(currentGroup, currentSub, data => {
-        setGroups(() => data.map(d =>
-        ({
-          oid: d.oid,
-          name: d.name,
-          name2: d.name2
-        })))
-        if (!currentGroup) setCurrentGroup(() => data[0]?.oid);
-        const g = currentGroup ? data.find(g => g.oid == currentGroup) : data[0];
-        setSubs(() => g?.subGroups ?? [])
-        if (!currentSub) setCurrentSub(() => g?.subGroups?.[0]?.oid);
-      });
+    let gr: string | undefined;
+    let sb: string | undefined;
+    if (currentGroup) gr = currentGroup;
+    else {
+      gr = findWorkingGroup();
+      setCurrentGroup(gr)
     }
+    if (currentSub) sb = currentSub;
+    else {
+      sb = findWorkingSub();
+      setCurrentSub(sb);
+    }
+    // if (!fetched || !itemData?.[0]?.subGroups) {
+    fetchData(gr, sb, data => {
+      setGroups(() => data.map(d =>
+      ({
+        oid: d.oid,
+        name: d.name,
+        name2: d.name2
+      })))
+      if (!gr) setCurrentGroup(() => data[0]?.oid);
+      const g = gr ? data.find(g => g.oid == gr) : data[0];
+      setSubs(() => g?.subGroups ?? [])
+      if (!sb) {
+        setCurrentSub(() => g?.subGroups?.[0]?.oid);
+      }
+    });
+    // }
     setInit(() => true)
   }, []);
-
   return (
     <div className="mobile-menu" >
       <div style={{
@@ -287,6 +296,8 @@ const MobileMenu = forwardRef<{ floatCart: ({ reload: () => void }) | null }, {
                 onClick={() => {
                   const input: TPendingItem = {
                     modifyItemGroups: x.modifyItemGroups,
+                    askQty: x.askQty,
+                    hideMainItem: false,
                     main: {
                       oid: currentGroup!,
                       name: groups.find(g => g.oid == currentGroup)!.name

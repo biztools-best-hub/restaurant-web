@@ -7,20 +7,22 @@ export type TTheme = {
 }
 export type TNotificationType = 'error' | 'info' | 'warning' | 'success'
 export type TSettingStoreContextProps = {
-  openSettings(): void
-  closeSettings(): void
-  onUpdateSort(fn: (sort?: 'name' | 'number') => void): void
+  decimalDigits: number,
   menuDisplays: ('name' | 'name2' | 'productDescription')[]
-  updateMenuDisplays(values: ('name' | 'name2' | 'productDescription')[]): void
   settingsOpened: boolean
   theme: TTheme
   apiUrl: string
   isShowItemImage: boolean
-  showItemImage: (b: boolean) => void
   isPC: boolean
   isMobileNotTab: boolean
   isApiReady: boolean
   sortBy: 'name' | 'number'
+  updateDecimalDigits: (n: number) => void
+  showItemImage: (b: boolean) => void
+  updateMenuDisplays(values: ('name' | 'name2' | 'productDescription')[]): void
+  openSettings(): void
+  closeSettings(): void
+  onUpdateSort(fn: (sort?: 'name' | 'number') => void): void
   updateSortBy(s: 'name' | 'number'): void
   updateApiUrl(url: string): void
   updateThemeColor(c: TThemeColor): void
@@ -59,6 +61,7 @@ export type TUser = {
 }
 export type TBaseItem = {
   oid: string
+  hideMainItem: boolean
   name: string
   name2?: string
   productDescription?: string
@@ -72,6 +75,7 @@ export type TSubGroupItem = TBaseItem & {
 }
 export type TItem = TBaseItem & {
   number: string
+  askQty: boolean
   modifyItemCharged?: boolean
   salePrice: number
   localSalePrice: string
@@ -241,8 +245,8 @@ export type TOrdersStoreContextProps = {
   isOrderFormOpened(): boolean
   openOrderForm(): void
   closeOrderForm(): void
-  putWorkingSub(s: string): void
-  putWorkingGroup(g: string): void
+  putWorkingSub(s: string, fromWhere: string): void
+  putWorkingGroup(g: string, fromWhere: string): void
   findWorkingSub(): string | undefined
   findWorkingGroup(): string | undefined
   removeWorkingSub(): void
@@ -349,12 +353,13 @@ export type TMergeOrderParams = {
   right: TPendingOrder
 }
 export type TMenuItem = TItem & {
-  open: boolean,
+  open: boolean
   selectedModifyItems: (TKitItem & {
     group: {
       oid: string
-      name: string,
-    }, qty: number
+      name: string
+    }
+    qty: number
   })[]
 }
 export type TDataExtend = TBaseItem & {
@@ -426,7 +431,8 @@ export type TOverlayOrderFormRefs = {
   removeMode: 'order' | 'item'
   byChangeTable: boolean
   updateOrder(o: TPendingOrder): void
-  addItem(itm: TPendingItem): void
+  addItem(itm: TPendingItem, isQtyItem: boolean): void
+  addItemBatch(itemList: TPendingItem[]): void
   currentOrder: TPendingOrder
   close(): void
   removeItem(itm: TPendingItem): void
@@ -446,12 +452,14 @@ export type TOverlayOrderFormRefs = {
 }
 export type TOverlayOrderFormProps = {
   order: TPendingOrder
-  onRemark(itm: TPendingItem, child?: TSelectedModifyItem): void
   enableOuterPrint: boolean
   doingPage: boolean
-  onSave(): void
   fromRoute: 'orders' | 'tables'
   initialEdit?: boolean
+  onIncreaseOnQtyItem(itm: TPendingItem): void
+  onDecreaseOnQtyItem(itm: TPendingItem): void
+  onSave(): void
+  onRemark(itm: TPendingItem, child?: TSelectedModifyItem): void
   onStartRemove(oid: TPendingItem, mode?: 'order' | 'item'): void
   onSelectTable(cf: boolean, byChangeTable: boolean): void
   onStartDiscard(): void

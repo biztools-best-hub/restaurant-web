@@ -73,7 +73,7 @@ const PortableMenu = forwardRef<TPortableMenuRefs, TPortableMenuProps>(
     const mainEls = useRef<({ oid: string, el: HTMLDivElement | null })[]>(fetched ?
       itemData?.map(d => ({ oid: d.oid, el: null, hasImage: false })) ?? [] : [])
     const indicatorRef = useRef<HTMLDivElement | null>(null);
-    const searchRef = useRef<({ value: string, reset(): void,search():void }) | null>(null);
+    const searchRef = useRef<({ value: string, reset(): void, search(): void }) | null>(null);
     useImperativeHandle(ref, () => ({
       select() { },
       closeSearch() { searchRef.current?.reset() }
@@ -89,7 +89,7 @@ const PortableMenu = forwardRef<TPortableMenuRefs, TPortableMenuProps>(
     }
     useEffect(() => {
       if (!initialize) return;
-      if (!!currentGroup) putWorkingGroup(currentGroup)
+      if (!!currentGroup) putWorkingGroup(currentGroup, "portable menu screen - check current group")
       else removeWorkingGroup()
       if (!currentGroup) return;
       moveIndicator();
@@ -105,7 +105,7 @@ const PortableMenu = forwardRef<TPortableMenuRefs, TPortableMenuProps>(
     }, [groups.length])
     useEffect(() => {
       if (fetching || !initialize) return;
-      if (!!currentSub) putWorkingSub(currentSub);
+      if (!!currentSub) putWorkingSub(currentSub, "portable menu screen - check current sub use effect");
       else removeWorkingSub();
       const g = itemData?.find(g => g.oid == currentGroup);
       const sub = g?.subGroups?.find(s => s.oid == currentSub)
@@ -243,7 +243,9 @@ const PortableMenu = forwardRef<TPortableMenuRefs, TPortableMenuProps>(
                       setCurrentItem(() => itm.oid);
                       saveCurrentItem(itm.oid);
                       const input: TPendingItem = {
+                        askQty: itm.askQty,
                         modifyItemGroups: itm.modifyItemGroups,
+                        hideMainItem: false,
                         main: {
                           oid: currentGroup!,
                           name: groups.find(g => g.oid == currentGroup)!.name
@@ -358,6 +360,8 @@ const PortableMenu = forwardRef<TPortableMenuRefs, TPortableMenuProps>(
                             saveCurrentItem(itm.oid);
                             const input: TPendingItem = {
                               modifyItemGroups: itm.modifyItemGroups,
+                              askQty: itm.askQty,
+                              hideMainItem: false,
                               main: {
                                 oid: currentGroup!,
                                 name: groups.find(g => g.oid == currentGroup)!.name

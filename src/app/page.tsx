@@ -9,11 +9,11 @@ const MainPage: FC = () => {
   const {
     findWorkingOrder,
     removeWorkingOrder,
-    findWorkingGroup,
-    findWorkingSub,
-    removeWorkingGroup,
+    // findWorkingGroup,
+    // findWorkingSub,
+    // removeWorkingGroup,
     removeCurrentItem,
-    removeWorkingSub,
+    // removeWorkingSub,
     isOrderFormOpened,
     getCurrentItem,
     getSearchItem,
@@ -22,14 +22,14 @@ const MainPage: FC = () => {
   } = useOrders()
   useEffect(() => {
     const order = findWorkingOrder();
-    const group = findWorkingGroup();
-    const sub = findWorkingSub();
+    // const group = findWorkingGroup();
+    // const sub = findWorkingSub();
     const itm = getCurrentItem();
     const searchItem = getSearchItem();
     if (!!searchItem) removeSearchItem();
     if (!!order) removeWorkingOrder();
-    if (!!group) removeWorkingGroup();
-    if (!!sub) removeWorkingSub();
+    // if (!!group) removeWorkingGroup();
+    // if (!!sub) removeWorkingSub();
     if (!!itm) removeCurrentItem();
     if (isOrderFormOpened()) closeOrderForm();
   }, [])

@@ -24,7 +24,6 @@
   margin: 10px;
   padding: 6px 10px;
   margin-top: 0;
-  /* border: solid 1px #77c3e0; */
   background-color: #f5feff;
   box-shadow: 1px 1px 2px #00000021;
   border-radius: 6px;
@@ -52,16 +51,29 @@
   margin: 0 10px;
 }
 
+.order-item .modify-part:has(.hide-main) {
+  margin: 0;
+}
+
 .order-item .in-modify-part {
   flex: 1;
   display: flex;
-  /* flex-wrap: wrap; */
   flex-direction: column;
   gap: 6px;
   padding: 10px;
   background-color: #ff33001c;
   border-radius: 0 0 10px 10px;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, .2);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, .3);
+}
+
+.order-item .in-modify-part.hide-main {
+  border-radius: 10px;
+  background-color: #008da021;
+}
+
+.order-item .in-modify-part.hide-main .modify-item {
+  background-color: #ffffff;
+  border-color: #00b4d4;
 }
 
 .modify-item-with-ctl {
@@ -171,8 +183,6 @@
   display: flex;
   flex-direction: column;
   text-align: left;
-  /* align-items: space-between; */
-  /* gap: 4px; */
   align-items: flex-start;
   flex: 1;
   min-width: fit-content;
@@ -185,12 +195,6 @@
   display: flex;
   justify-content: space-between;
 }
-
-/* .modify-item .inf-sect span:first-child {
-  padding: 1px 4px;
-  border-radius: 4px;
-  color: #fff;
-} */
 
 .modify-item .remark-sect {
   display: flex;
@@ -217,15 +221,16 @@
 }
 
 .btn-modify {
-  padding: 3px 8px;
   font-size: 16px;
   border: none;
   background-color: #a042bdaf;
   color: #fff;
-  border-radius: 6px;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  border-radius: 50%;
   text-transform: capitalize;
-  min-width: 40px;
-  min-height: 40px;
   cursor: pointer;
   display: flex;
   gap: 3px;

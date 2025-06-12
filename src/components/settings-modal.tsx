@@ -1,14 +1,49 @@
 import '@/css/settings-modal.css';
 import { useSetting } from '@/store/setting.store';
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, KeyboardEvent, FocusEvent, useEffect, useMemo, useRef, useState } from "react";
 
 const SettingsModal: FC = () => {
-  const { sortBy, closeSettings, showItemImage, isShowItemImage, updateMenuDisplays, updateSortBy, menuDisplays } = useSetting();
+  const { sortBy, closeSettings, showItemImage, isShowItemImage, updateMenuDisplays, updateSortBy, menuDisplays, decimalDigits, updateDecimalDigits } = useSetting();
   const [showDialog, setShowDialog] = useState(false);
   const dialogClass = useMemo(() => {
     return `settings-dialog${showDialog ? ' show' : ''}`; 
   }, [showDialog]);
+  const decimalDigitsRef = useRef<HTMLInputElement | null>(null);
+  const holdingCtl = useRef<boolean>(false);
+  function whenKeydown(e: KeyboardEvent<HTMLInputElement>) {
+    const allowedKeys = ['backspace', 'delete', 'arrowleft', 'arrowright', '0', 'control', 'f5', 'shift'];
+    if (!Number(e.key)) {
+      const k = e.key.toLowerCase();
+      if (k != 'a') {
+        if (allowedKeys.every(v => v != k)) {
+          e.preventDefault();
+          return;
+        }
+        if (k == 'control') {
+          holdingCtl.current = true;
+        }
+      }
+      else if (!holdingCtl.current) {
+        e.preventDefault();
+        return;
+      }
+    }
+  }
+  function whenInput(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.currentTarget.value?.length > 1) {
+      if (e.currentTarget.value.startsWith('0')) e.currentTarget.value.substring(1);
+    }
+  }
+  function whenBlur(e: FocusEvent<HTMLInputElement>) {
+    const v = !e.currentTarget.value || e.currentTarget.value == '0' ? 2 : Number(e.currentTarget.value);
+    e.currentTarget.value = v.toString();
+    updateDecimalDigits(v);
+  }
   useEffect(() => {
+    if (decimalDigitsRef.current) {
+      decimalDigitsRef.current.value = decimalDigits.toString();
+      decimalDigitsRef.current.focus();
+    }
     setShowDialog(true);
   }, []);
   return (
@@ -22,11 +57,22 @@ const SettingsModal: FC = () => {
         </div>
         <div className="settings-content">
           <div className="settings-name-section">
+            <div className="settings-name">Decimal Digits</div>
             <div className="settings-name">Sort items by</div>
             <div className="settings-name">Show item images</div>
             <div className="settings-name">Menu display</div>
           </div>
           <div className="settings-value-section">
+            <div className="settings-value">
+              <input
+                ref={decimalDigitsRef}
+                onKeyDown={whenKeydown}
+                onInput={whenInput}
+                onBlur={whenBlur}
+                type="text" defaultValue="2"
+                name='decimal-digits'
+                className='dcm-input' />
+            </div>
             <div className="settings-value">
               <span className='clickable' onClick={() => {
                 updateSortBy('name');

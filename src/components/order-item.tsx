@@ -1,6 +1,6 @@
 'use client'
 import { TKitItem, TMenuItem, TPendingItem, TSelectedModifyItem } from "@/types";
-import { FC, useEffect } from "react";
+import { FC, useEffect, useRef } from "react";
 import '@/css/order-item.css'
 import ImageBox from "./image-box";
 import { optimizePrice } from "@/utilities";
@@ -18,6 +18,7 @@ const OrderItem: FC<{
   onModify(itm: TPendingItem): void
 }> = ({ itm, onDecr, onIncr, disableEdit, onModify, canModify, promoItem, afterMounted, onRemark }) => {
   const { isShowItemImage } = useSetting()
+  // const hideMain = useRef<boolean>(itm.selectedModifyItems.length > 0 && itm.selectedModifyItems.some(v => v.hideMainItem));
   function optimizeModifyItemName(itm: TKitItem & { group: { oid: string, name: string }, qty: number }) {
     const chunks = itm.name.split('-');
     if (chunks.length < 2) return itm.name;
@@ -58,9 +59,12 @@ const OrderItem: FC<{
   }
   useEffect(() => {
     afterMounted?.();
+    // console.log(hideMain.current);
   }, [])
+  // useEffect(() => { console.log(hideMain.current) }, [hideMain.current])
   return (
     <div className="order-item">
+      {/* {!hideMain.current && */}
       <div className="main-part">
         <div className="main-item">
           {isShowItemImage &&
@@ -99,8 +103,8 @@ const OrderItem: FC<{
           </div>
           <div className="ctl-sect sect">
             <div className="ctl-container">
-              {!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() &&
-                <button className="ctl-add" type="button" onClick={incr}>
+              {!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() && (itm.isNew || !itm.askQty) &&
+                < button className="ctl-add" type="button" onClick={incr}>
                   <i className="ri-arrow-up-s-fill"></i>
                 </button>
               }
@@ -111,7 +115,7 @@ const OrderItem: FC<{
               }}>
                 {itm.qty}
               </span>
-              {!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() &&
+              {!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() && (itm.isNew || !itm.askQty) &&
                 <button className="ctl-minus" type="button" onClick={decr}>
                   <i className="ri-arrow-down-s-fill"></i>
                 </button>
@@ -133,13 +137,17 @@ const OrderItem: FC<{
             </div>
           ))}
       </div>
-      {itm.hasModifiedItemGroup &&
+      {/* } */}
+      {
+        itm.hasModifiedItemGroup &&
         <div className="modify-part">
-          <div className="in-modify-part">
+          {/* <div className={`in-modify-part${hideMain.current ? ' hide-main' : ''}`}> */}
+          <div className={`in-modify-part`}>
             {itm.hasModifiedItemGroup &&
-              itm.selectedModifyItems.map((m, i) =>
-                i < itm.selectedModifyItems.length - 1 ?
-                  (<div className="modify-item"
+              itm.selectedModifyItems.map((m, i) => {
+                // console.log(m);
+                if (i < itm.selectedModifyItems.length - 1) {
+                  return (<div className="modify-item"
                     onClick={() => {
                       if (!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour()) {
                         onRemark(m)
@@ -152,44 +160,49 @@ const OrderItem: FC<{
                       </span>
                       <span className="modify-qty">&times;{m.qty * itm.qty}</span>
                     </div>
+                    {/* {(hideMain.current || m.charged) && <div>{optimizePrice(m)}</div>} */}
+                    {m.charged && <div>{optimizePrice(m)}</div>}
                     <div className={`remark-sect${!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() ? ' clickable' : ''}`}>
                       <i className="ri-edit-2-fill"></i>
                       <span>{m.description ?? optimizeModifyItemName(m)}</span>
                     </div>
-                  </div>) : (
-                    <div className="modify-item-with-ctl" key={m.group.oid + "_" + m.oid}>
-                      <div className="modify-item" onClick={() => {
-                        if (!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour()) {
-                          onRemark(m)
-                        }
-                      }}>
-                        <div className="inf-sect">
-                          <span>
-                            {optimizeModifyItemName(m)}
-                          </span>
-                          <span className="modify-qty">&times;{m.qty * itm.qty}</span>
-                        </div>
-                        <div className={`remark-sect${!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() ? ' clickable' : ''}`}>
-                          <i className="ri-edit-2-fill"></i>
-                          <span>{m.description ?? optimizeModifyItemName(m)}</span>
-                        </div>
-                      </div>
-                      {canModify &&
-                        <button
-                          className="btn-modify"
-                          onClick={() => { onModify(itm) }}
-                          type="button">
-                          <i className="ri-edit-2-fill"></i>
-                          {/* <span>
-                            modify
-                          </span> */}
-                        </button>
+                  </div>);
+                }
+                return (
+                  <div className="modify-item-with-ctl" key={m.group.oid + "_" + m.oid}>
+                    <div className="modify-item" onClick={() => {
+                      if (!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour()) {
+                        onRemark(m)
                       }
+                    }}>
+                      <div className="inf-sect">
+                        <span>
+                          {optimizeModifyItemName(m)}
+                        </span>
+                        <span className="modify-qty">&times;{m.qty * itm.qty}</span>
+                      </div>
+                      {/* {(hideMain.current || m.charged) && <div>{optimizePrice(m)}</div>} */}
+                      {m.charged && <div>{optimizePrice(m)}</div>}
+                      <div className={`remark-sect${!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() ? ' clickable' : ''}`}>
+                        <i className="ri-edit-2-fill"></i>
+                        <span>{m.description ?? optimizeModifyItemName(m)}</span>
+                      </div>
                     </div>
-                  ))}
+                    {canModify &&
+                      <button
+                        className="btn-modify"
+                        onClick={() => { onModify(itm) }}
+                        type="button">
+                        <i className="ri-edit-2-fill"></i>
+                      </button>
+                    }
+                  </div>
+                )
+              })}
           </div>
-        </div>}
-    </div>
+        </div>
+      }
+    </div >
   )
 }
 export default OrderItem

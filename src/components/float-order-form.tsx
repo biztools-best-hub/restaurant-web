@@ -2,11 +2,23 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import '@/css/float-order-form.css';
 import { useOrders } from "@/store/orders.store";
-import { TKitItem, TModifyItemsViewRef, TNotificationModel, TPendingItem, TPendingOrder, TSelectedModifyItem } from "@/types";
+import {
+  TConfirmRefs,
+  TKitItem,
+  // TMenuItem,
+  TModifyItemsViewRef,
+  TNotificationModel,
+  TPendingItem,
+  TPendingOrder,
+  TSelectedModifyItem
+} from "@/types";
 import OrderItem from "./order-item";
 import { useDataFromApi } from "@/store/data.store";
 import Skeleton from "./skeleton";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  usePathname
+  // , useRouter
+} from "next/navigation";
 import ConfirmAlert from "./confirm-alert";
 import PortableOutlet from "./portable-outlet";
 import AdultAndChildControlBox from "./adult-child-control-box";
@@ -16,6 +28,7 @@ import ModifyItemsView from "./modify-items-view";
 import { useCredential } from "@/store/credential.store";
 import { useNotifications } from "@/store/notifications.store";
 import { v4 } from "uuid";
+import QtyBox from "./qty-box";
 
 const FloatOrderForm = forwardRef<{ reload(): void },
   {
@@ -28,7 +41,15 @@ const FloatOrderForm = forwardRef<{ reload(): void },
     fromOrdersPage: boolean
     onStartRemove(params: { item: TPendingItem, mode: 'item' | 'order' }): void
     onStateChanged(): void
-  }>(({ show, onClose, inOrder, enableOuterPrint, onRemark, fromOrdersPage, onStartRemove, onStateChanged, onAction }, ref) => {
+  }>(({ show,
+    onClose,
+    inOrder,
+    enableOuterPrint,
+    fromOrdersPage,
+    onRemark,
+    onStartRemove,
+    onStateChanged,
+    onAction }, ref) => {
     const pathname = usePathname()
     const { findWorkingOrder,
       putWorkingOrder,
@@ -37,16 +58,19 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       removeWorkingOrder,
       removeWorkingSub,
       removeOrder } = useOrders();
-    const [editable, setEditable] = useState(!fromOrdersPage || pathname == '/orders/doing' || pathname == '/tables/doing');
+    const editable = !fromOrdersPage || pathname == '/orders/doing' || pathname == '/tables/doing';
+    // const [editable, setEditable] = useState(!fromOrdersPage || pathname == '/orders/doing' || pathname == '/tables/doing');
     const [order, setOrder] = useState<TPendingOrder | undefined>(inOrder ?? findWorkingOrder());
     const [modifyItem, setModifyItem] = useState<TPendingItem>();
     const [modifyMode, setModifyMode] = useState<'new' | 'edit'>('new')
+    const [showQty, setShowQty] = useState(false)
+    const [qtyItem, setQtyItem] = useState<TPendingItem>();
     const [showModify, setShowModify] = useState<boolean>(false);
     const [showMobileOutlet, setShowMobileOutlet] = useState<boolean>(false)
     const [editMode, setEditMode] = useState<'menu' | 'order'>('order')
     const [orderAfterPromo, setOrderAfterPromo] = useState<TPendingOrder | undefined>(inOrder ?? findWorkingOrder())
-    const [kot, setKot] = useState<TPendingOrder>()
-    const [loadKot, setLoadKot] = useState<boolean>(false)
+    // const [kot, setKot] = useState<TPendingOrder>()
+    // const [loadKot, setLoadKot] = useState<boolean>(false)
     const [open, setOpen] = useState<boolean>(false);
     const [byChangeTable, setByChangeTable] = useState<boolean>(false)
     const [opening, setOpening] = useState<boolean>(false);
@@ -58,7 +82,13 @@ const FloatOrderForm = forwardRef<{ reload(): void },
     const [subTotal, setSubTotal] = useState<number>(0)
     const [tax, setTax] = useState<number>(0)
     const [discount, setDiscount] = useState<number>(0)
-    const router = useRouter()
+    // const router = useRouter()
+    const qtyRef = useRef<{
+      getQty(): number
+      reset(): void
+      focus(): void
+    } | null>(null);
+    const qtyAlertRef = useRef<TConfirmRefs | null>(null);
     const adultChildRef = useRef<({ adult: number, child: number }) | null>(null)
     const menuRef = useRef<({ floatCart: ({ reload: () => void }) | null }) | null>(null)
     const modifyRef = useRef<TModifyItemsViewRef | null>(null)
@@ -68,7 +98,7 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       setOrder(() => o);
       menuRef.current?.floatCart?.reload();
     }
-    function addItem(itm: TPendingItem) {
+    function addItem(itm: TPendingItem, isQtyItem: boolean) {
       if (!order) return
       itm.isNew = true;
       let nOrder: TPendingOrder
@@ -76,18 +106,26 @@ const FloatOrderForm = forwardRef<{ reload(): void },
         const items = [...order.items];
         if (!!order.isConfirm) {
           if (items.every(t => !exist(t, itm))) {
-            items.push({ ...itm, isNew: true });
+            items.push({ ...itm, isNew: true, askQty: isQtyItem });
           } else {
             const tg = items.find(t => exist(t, itm));
             if (!tg) {
-              items.push({ ...itm, isNew: true })
+              items.push({ ...itm, isNew: true, askQty: isQtyItem })
+            }
+            else if (isQtyItem) {
+              tg.askQty = true;
+              tg.qty = itm.qty;
             }
             else tg.qty++;
           }
         } else {
           const tg = items.find(t => exist(t, itm));
           if (!tg) {
-            items.push({ ...itm, isNew: true })
+            items.push({ ...itm, isNew: true, askQty: isQtyItem })
+          }
+          else if (isQtyItem) {
+            tg.askQty = true;
+            tg.qty = itm.qty;
           }
           else tg.qty++;
         }
@@ -100,10 +138,12 @@ const FloatOrderForm = forwardRef<{ reload(): void },
         return;
       }
       const items = [...order.items];
-      const tg = items.find(t => t.oid == itm.oid && t.rowOid == itm.rowOid);
+      let tg = items.find(t => t.oid == itm.oid && t.rowOid == itm.rowOid);
       if (!tg) {
-        items.push({ ...itm, isNew: true });
+        tg = { ...itm, isNew: true, askQty: isQtyItem };
+        items.push(tg);
       }
+      else if (isQtyItem) tg.qty = itm.qty;
       else tg.qty++;
       const o: TPendingOrder = {
         ...order,
@@ -162,9 +202,19 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       nOrder = o;
       modifyAndCheck(nOrder)
     }
+    function onQtyConfirm(itm?: TPendingItem) {
+      const qty = qtyRef.current?.getQty() ?? 0;
+      if (!itm && qtyItem) itm = qtyItem;
+      if (qty > 0 && itm) {
+        addItem({ ...itm, qty }, true)
+      }
+      setQtyItem(undefined);
+      setShowQty(false);
+      qtyRef.current?.reset();
+    }
     useImperativeHandle(ref, () => ({
       reload: () => setOrder(() => findWorkingOrder())
-    }))
+    }));
     useEffect(() => {
       if (!order) return;
       checkPromotion(order, d => {
@@ -212,7 +262,11 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       if (editMode == 'menu') setOpen(() => false);
       else setOpen(() => true);
     }, [editMode]);
-
+    useEffect(() => {
+      if (!qtyItem) return;
+      setShowQty(true);
+      setTimeout(() => qtyRef.current?.focus(), 50);
+    }, [qtyItem])
     useEffect(() => {
       if (show) {
         setOpening(() => true);
@@ -232,14 +286,14 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       if (!modifyItem || showModify) return;
       setShowModify(() => true)
     }, [modifyItem])
-    useEffect(() => {
-      if (!order?.isConfirm) return;
-      setLoadKot(() => true)
-      fetchOrder(order.oid, d => {
-        setKot(() => !d ? undefined : ({ ...d, isConfirm: true }));
-        setLoadKot(() => false)
-      });
-    }, [])
+    // useEffect(() => {
+    //   if (!order?.isConfirm) return;
+    //   // setLoadKot(() => true)
+    //   // fetchOrder(order.oid, d => {
+    //   //   // setKot(() => !d ? undefined : ({ ...d, isConfirm: true }));
+    //   //   setLoadKot(() => false)
+    //   // });
+    // }, [])
     return (
       <div className={`float-order${show || opening ? ' show' : ''}`}>
         <div className={`float-order-menu${editMode == 'menu' ? ' open' : ''}`}>
@@ -252,7 +306,11 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                 setModifyMode(() => 'new')
                 return;
               }
-              addItem(itm)
+              if (itm.askQty) {
+                setQtyItem(itm);
+                return;
+              }
+              addItem(itm, false)
             }}
             showCart={editMode == 'menu'}
             ref={menuRef}
@@ -284,6 +342,11 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                 onDecr={(oid, selectedItems, rowOid) => {
                   if (!order) return;
                   let items = [...order.items];
+                  const itm = items.find(v => v.oid == oid);
+                  if (itm?.askQty) {
+                    setQtyItem(itm);
+                    return;
+                  }
                   const exist = (t: TPendingItem) => {
                     if ((!!t.rowOid || !!rowOid) && t.rowOid == rowOid) return true;
                     if (t.oid != oid) return false;
@@ -344,6 +407,11 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                 onIncr={(oid, selectedItems, rowOid) => {
                   if (!order) return;
                   const items = [...order.items];
+                  const itm = items.find(v => v.oid == oid);
+                  if (itm?.askQty) {
+                    setQtyItem(itm);
+                    return;
+                  }
                   const tg = items.find(t => {
                     if (!!t.rowOid && t.rowOid == rowOid) return true;
                     if (t.oid != oid) return false;
@@ -560,7 +628,8 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                       return;
                     }
                     putWorkingOrder(order)
-                    router.push('/orders/doing')
+                    window.location.href = '/orders/doing';
+                    // router.push('/orders/doing')
                   }}>Edit or order more</button>}
                 {!!enableOuterPrint && pathname != '/orders/doing' && pathname != '/tables/doing' &&
                   <button type="button"
@@ -596,10 +665,12 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                 {pathname != "/orders/doing" && pathname != '/tables/doing' && !order?.isConfirm &&
                   <button type="button" className="btn-discard" onClick={() => {
                     const temp: TPendingItem = {
+                      askQty: false,
                       oid: '',
                       name: '',
                       number: '',
                       salePrice: 0,
+                      hideMainItem: false,
                       localSalePrice: '',
                       hasModifiedItemGroup: false,
                       hideFromSubGroup: false,
@@ -616,6 +687,24 @@ const FloatOrderForm = forwardRef<{ reload(): void },
             }
           </div>
         </div>
+        <ConfirmAlert
+          show={showQty}
+          onConfirm={() => {
+            onQtyConfirm();
+          }}
+          onDeny={() => { }}
+          onHide={() => {
+            setShowQty(false)
+            setQtyItem(undefined)
+            qtyRef.current?.reset();
+          }}
+          confirmDisabled={false}
+          denyDisabled={true}
+          hidConfirm={false}
+          hideDeny={true}
+          title="Modify Quantity"
+          msg={<QtyBox item={qtyItem} onEnter={onQtyConfirm} onEscape={() => qtyAlertRef.current?.close()} ref={qtyRef} />}
+        />
         <ConfirmAlert
           show={showMobileOutlet}
           beforeConfirm={() => { }}
@@ -744,7 +833,7 @@ const FloatOrderForm = forwardRef<{ reload(): void },
           show={showModify}
           beforeConfirm={() => {
             if (!modifyItem || modifyMode == 'edit') return;
-            addItem(modifyItem)
+            addItem(modifyItem, false)
           }}
           confirmDisabled={false}
           denyDisabled={false}

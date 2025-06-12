@@ -1,5 +1,9 @@
 'use client'
-import { usePathname, useRouter } from "next/navigation";
+import { deleteWorkingGroup, deleteWorkingSub } from "@/utilities";
+import {
+  usePathname
+  // , useRouter
+} from "next/navigation";
 import {
   createContext,
   FC,
@@ -26,7 +30,7 @@ export const NavigationStoreContext = createContext<TNavigationStoreContextProps
 export const NavigationProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [canNavigate, setCanNavigate] = useState<boolean>(true)
   const [pendingPath, setPendingPath] = useState<string>()
-  const router = useRouter()
+  // const router = useRouter()
   const path = usePathname()
   const navigatingRef = useRef(() => { })
   function onNavigating(fn: () => void) {
@@ -35,7 +39,10 @@ export const NavigationProvider: FC<{ children: ReactNode }> = ({ children }) =>
   }
   function navigate(path: string) {
     if (canNavigate) {
-      router.push(path)
+      deleteWorkingGroup();
+      deleteWorkingSub();
+      // router.push(path)
+      window.location.href = path;
       return
     }
     setPendingPath(() => path)

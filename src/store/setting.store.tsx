@@ -4,23 +4,25 @@ import { getSettingsConfig, retrieveTheme, setThemeColor, toggleThemeMode as the
 import { createContext, FC, ReactNode, useContext, useEffect, useState } from "react";
 
 export const SettingStoreContext = createContext<TSettingStoreContextProps>({
+  decimalDigits: 2,
+  settingsOpened: false,
+  theme: { color: 'purple', isDark: true },
+  isMobileNotTab: false,
+  isApiReady: false,
+  isShowItemImage: false,
+  sortBy: 'name',
+  menuDisplays: [],
+  isPC: true,
+  apiUrl: '',
+  updateDecimalDigits() { },
+  updateSortBy() { },
+  showItemImage() { },
+  updateThemeColor() { },
+  toggleThemeMode() { },
   openSettings() { },
   closeSettings() { },
   onUpdateSort() { },
   updateMenuDisplays() { },
-  settingsOpened: false,
-  theme: { color: 'purple', isDark: true },
-  isMobileNotTab: false,
-  showItemImage() { },
-  isShowItemImage: false,
-  sortBy: 'name',
-  menuDisplays: [],
-  updateSortBy() { },
-  isPC: true,
-  apiUrl: '',
-  updateThemeColor() { },
-  toggleThemeMode() { },
-  isApiReady: false,
   updateApiUrl() { }
 })
 export const SettingStoreProvider: FC<{ children: ReactNode }> = ({ children }) => {
@@ -29,6 +31,7 @@ export const SettingStoreProvider: FC<{ children: ReactNode }> = ({ children }) 
     isDark: false
   });
   const [apiUrl, setApiUrl] = useState<string>('');
+  const [decimalDigits, setDecimalDigits] = useState(2);
   const [menuDisplays, setMenuDisplays] = useState<('name' | 'name2' | 'productDescription')[]>(['name'])
   const [isApiReady, setIsApiReady] = useState<boolean>(false)
   const [isShowItemImage, setIsShowItemImage] = useState<boolean>(false)
@@ -81,6 +84,10 @@ export const SettingStoreProvider: FC<{ children: ReactNode }> = ({ children }) 
     themeToggle()
     setTheme(t => ({ ...t, isDark: !t.isDark }))
   }
+  function updateDecimalDigits(n: number) {
+    localStorage.setItem("decimal-digits", n.toString());
+    setDecimalDigits(n);
+  }
   function calculateSize() {
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
@@ -105,6 +112,7 @@ export const SettingStoreProvider: FC<{ children: ReactNode }> = ({ children }) 
         calculateSize()
       });
       const config = getSettingsConfig();
+      setDecimalDigits(() => config.decimalDigits);
       setSortBy(() => config.sortBy);
       setIsShowItemImage(() => config.isShowItemImage);
       setMenuDisplays(() => config.menuDisplays);
@@ -121,22 +129,24 @@ export const SettingStoreProvider: FC<{ children: ReactNode }> = ({ children }) 
   return (
     <SettingStoreContext.Provider value={{
       theme,
-      openSettings,
-      closeSettings,
-      onUpdateSort,
-      updateMenuDisplays,
+      decimalDigits,
       settingsOpened,
-      updateThemeColor,
       isMobileNotTab,
       isPC,
       isApiReady,
       isShowItemImage,
-      showItemImage,
       menuDisplays,
       sortBy,
+      apiUrl,
+      updateThemeColor,
+      showItemImage,
       updateSortBy,
       toggleThemeMode,
-      apiUrl,
+      updateDecimalDigits,
+      openSettings,
+      closeSettings,
+      onUpdateSort,
+      updateMenuDisplays,
       updateApiUrl
     }}>
       {children}

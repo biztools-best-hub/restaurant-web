@@ -11,7 +11,7 @@ import ConfirmAlert from "@/components/confirm-alert";
 import PortableOrders from "@/components/portable-orders";
 import OverlayMenuAndOrder from "@/components/overlay-menu-and-order";
 import { useCredential } from "@/store/credential.store";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import Lottie, { Options } from "react-lottie";
 import emptyAnimations from '@/animations/empty.json';
 import BusyScreen from "./busy-screen";
@@ -42,7 +42,7 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
   } = useOrders()
   const { isMobileNotTab } = useSetting()
   const { user } = useCredential()
-  const router = useRouter()
+  // const router = useRouter()
   const [currentOutlet, setCurrentOutlet] = useState<TOutlet | undefined>(
     isOutletsFetched && outlets.length > 0 ? outlets[0] : undefined)
   const [currentTable, setCurrentTable] = useState<{
@@ -52,7 +52,7 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
   }>()
   const { addNotification } = useNotifications()
   const [currentOrder, setCurrentOrder] = useState<TPendingOrder | undefined>(
-    initialOpen ? findWorkingOrder() : undefined)
+    initialOpen ? findWorkingOrder() : undefined);
   const { clearSearch } = useTopBar()
   const [showOrders, setShowOrders] = useState<boolean>(false)
   const [showRemoveOrder, setShowRemoveOrder] = useState<boolean>(false)
@@ -121,7 +121,6 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
     setRemarkItem(() => undefined);
     setRemarkChildItem(() => undefined);
   }
-
 
   function adjustOutletWidth() {
     const groupWidth = outletFilterRef.current?.getBoundingClientRect().width;
@@ -300,6 +299,8 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
     {isMobileNotTab &&
       <FloatOrderForm
         enableOuterPrint={false}
+        // onDecreaseOnQtyItem={itm => { }}
+        // onIncreaseOnQtyItem={itm => { }}
         inOrder={currentOrder}
         onRemark={(itm, c) => {
           setRemarkItem(() => itm);
@@ -308,7 +309,8 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
         onAction={() => { }}
         onClose={() => {
           setCurrentOrder(() => undefined);
-          router.replace("/tables");
+          window.location.href = "/tables";
+          // router.replace("/tables");
         }} show={!!currentOrder}
         fromOrdersPage
         onStartRemove={({ item, mode }) => {
@@ -353,12 +355,14 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
               username: user?.username ?? ''
             };
             putWorkingOrder(o)
-            router.push('/tables/doing')
+            window.location.href = '/tables/doing';
+            // router.push('/tables/doing')
           }}
           onSelect={(o) => {
             ordersBoxRef.current?.close();
             putWorkingOrder(o)
-            router.push('/tables/doing')
+            window.location.href = '/tables/doing';
+            // router.push('/tables/doing')
           }}
           table={currentTable} />}
     />
@@ -448,7 +452,8 @@ const TablesPage: FC<{ initialOpen: boolean }> = ({ initialOpen }) => {
         removeOrder(currentOrder.oid);
         setShowRemoveOrder(() => false)
         setCurrentOrder(() => undefined);
-        router.replace("/tables");
+        window.location.href = "/tables";
+        // router.replace("/tables");
       }}
       beforeDeny={() => { }}
       confirmDisabled={false}

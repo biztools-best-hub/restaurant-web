@@ -27,6 +27,7 @@
   /* border: solid 1px;
   border-color: rgb(0, 163, 212); */
 }
+
 .notification-box.error {
   background-color: rgb(201, 83, 83);
 }

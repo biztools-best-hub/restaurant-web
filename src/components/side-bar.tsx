@@ -5,7 +5,10 @@ import {
 } from "react";
 import '@/css/side-bar.css'
 import { useCredential } from "@/store/credential.store";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  usePathname
+  // , useRouter
+} from "next/navigation";
 import { useCustomNavigation } from "@/store/navigation.store";
 import { useOrders } from "@/store/orders.store";
 import { useDataFromApi } from "@/store/data.store";
@@ -24,7 +27,7 @@ const SideBar: FC = () => {
     updateUser,
     user,
   } = useCredential()
-  const router = useRouter()
+  // const router = useRouter()
   const pathName = usePathname()
   function changePage(page: string) {
     navigate(page)
@@ -36,7 +39,8 @@ const SideBar: FC = () => {
     removeDeviceId()
     updateUser(undefined)
     out();
-    router.replace("/")
+    window.location.href = "/";
+    // router.replace("/")
   }
   return (
     <div className="side-bar">

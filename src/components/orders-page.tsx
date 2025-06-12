@@ -14,8 +14,8 @@ import { optimizeDate, optimizeName } from "@/utilities";
 import BusyScreen from "./busy-screen";
 import { useSetting } from "@/store/setting.store";
 import FloatOrderForm from "./float-order-form";
-import { useRouter } from "next/navigation";
-import AdultAndChildControlBox from "./adult-child-control-box";
+// import { useRouter } from "next/navigation";
+// import AdultAndChildControlBox from "./adult-child-control-box";
 import PortableOutlet from "./portable-outlet";
 import { v4 } from "uuid";
 import { useTopBar } from "@/store/top-bar.store";
@@ -39,7 +39,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
     onDate: new Date(),
     paidStatus: 'unpaid'
   })
-  const router = useRouter()
+  // const router = useRouter()
   const [openStatus, setOpenStatus] = useState<boolean>(false);
   const {
     pending,
@@ -73,19 +73,31 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
   const [currentOrder, setCurrentOrder] = useState<TPendingOrder | undefined>(
     initialOpen ? findWorkingOrder() : undefined)
   const [currentMode, setCurrentMode] = useState<'delete' | 'view'>()
-  const [afterSelectTable, setAfterSelectTable] = useState<'keep' | 'confirm'>('keep')
+  const afterSelectTable: 'keep' | 'confirm' = 'keep';
+  // const [afterSelectTable, setAfterSelectTable] = useState<'keep' | 'confirm'>('keep')
   const { addNotification } = useNotifications()
-  const [currentOutlet, setCurrentOutlet] = useState<{
-    oid: string
-    outlet: {
-      oid: string
-      name: string
-    }
-    table: {
-      oid: string
-      number: string
-    }
-  }>()
+  // let currentOutlet: {
+  //   oid: string
+  //   outlet: {
+  //     oid: string
+  //     name: string
+  //   }
+  //   table: {
+  //     oid: string
+  //     number: string
+  //   }
+  // } | undefined = undefined;
+  // const [currentOutlet, setCurrentOutlet] = useState<{
+  //   oid: string
+  //   outlet: {
+  //     oid: string
+  //     name: string
+  //   }
+  //   table: {
+  //     oid: string
+  //     number: string
+  //   }
+  // }>()
   const remarkRef = useRef<HTMLInputElement | null>(null);
   const [remarkItem, setRemarkItem] = useState<TPendingItem>();
   const [remarkChildItem, setRemarkChildItem] = useState<TSelectedModifyItem>();
@@ -128,7 +140,6 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
     setRemarkItem(() => undefined);
     setRemarkChildItem(() => undefined);
   }
-
   function removeItem(itm: TPendingItem) {
     const order = findWorkingOrder();
     if (!order) return;
@@ -187,19 +198,19 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
       setLoading(() => false)
     })
   }, [filter, currentTab])
-  useEffect(() => {
-    if (!currentOutlet) return
-    if (!tableOutletRef.current) return;
-    const order = findWorkingOrder();
-    const od = {
-      outlet: currentOutlet,
-      items: order?.items,
-      order,
-      oid: currentOutlet.oid.trim().length > 0 ? currentOutlet.oid : v4(),
-      isConfirm: afterSelectTable == 'confirm'
-    };
-    tableOutletRef.current?.confirm(od)
-  }, [currentOutlet])
+  // useEffect(() => {
+  //   if (!currentOutlet) return
+  //   if (!tableOutletRef.current) return;
+  //   const order = findWorkingOrder();
+  //   const od = {
+  //     outlet: currentOutlet,
+  //     items: order?.items,
+  //     order,
+  //     oid: currentOutlet.oid.trim().length > 0 ? currentOutlet.oid : v4(),
+  //     isConfirm: afterSelectTable == 'confirm'
+  //   };
+  //   tableOutletRef.current?.confirm(od)
+  // }, [currentOutlet])
   useEffect(() => {
     clearSearch();
     fetchOrders({
@@ -211,7 +222,6 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
       setLoading(() => false)
     });
   }, [])
-
   return (
     <div className="orders-page">
       <div className="opt">
@@ -477,7 +487,8 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           onAction={() => { }}
           onClose={() => {
             setCurrentOrder(() => undefined);
-            router.replace("/orders");
+            // router.replace("/orders");
+            window.location.href = "/orders";
           }} show={!!currentOrder}
           fromOrdersPage
           onStartRemove={({ item, mode }) => {
@@ -600,7 +611,8 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           removeOrder(currentOrder.oid);
           setShowRemoveOrder(() => false)
           setCurrentOrder(() => undefined);
-          router.replace("/orders");
+          // router.replace("/orders");
+          window.location.href = "/orders";
         }}
         beforeDeny={() => { }}
         confirmDisabled={false}
@@ -615,9 +627,10 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
         denyDisabled={false}
         confirmDisabled={false}
         ref={tableOutletRef}
-        icon={afterSelectTable == 'confirm' ? 'ri-checkbox-circle-fill' : undefined}
+        // icon={afterSelectTable == 'confirm' ? 'ri-checkbox-circle-fill' : undefined}
         hidConfirm={true}
-        hideDeny={afterSelectTable == 'confirm'}
+        // hideDeny={afterSelectTable == 'confirm'}
+        hideDeny={false}
         show={showTableOutlets}
         msg={<div className="portable-tables-dialog">
           <div className="portable-tables-dialog-desc">
@@ -635,9 +648,10 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           </div>
           <PortableOutlet
             open={showTableOutlets}
-            forConfirm={afterSelectTable == 'confirm'}
+            forConfirm={false}
+            // forConfirm={afterSelectTable == 'confirm'}
             onSelect={() => { }} />
-          {afterSelectTable == 'confirm' &&
+          {/* {afterSelectTable == 'confirm' &&
             <div className="adult-child-container" style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -740,7 +754,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
                 <span>Confirm</span>
               </button>
             </div>
-          }
+          } */}
         </div>}
         denyText="Skip"
         confirmText="Ok"
@@ -799,7 +813,8 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
               removeWorkingGroup()
               removeWorkingSub()
               setShowTableOutlets(() => false)
-              router.replace('/')
+              // router.replace('/')
+              window.location.href = "/";
             });
             return;
           }
@@ -827,16 +842,18 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           removeWorkingOrder();
           removeWorkingGroup();
           removeWorkingSub();
-          router.replace('/');
+          // router.replace('/');
+          window.location.href = "/";
         }}
         beforeDeny={() => {
-          if (afterSelectTable == 'confirm') return;
+          // if (afterSelectTable == 'confirm') return;
           const order = findWorkingOrder();
           if (order) addRangePending(order.items, true, order.oid);
           removeWorkingOrder();
           removeWorkingGroup();
           removeWorkingSub();
-          router.replace('/')
+          // router.replace('/')
+          window.location.href = "/";
         }}
         onDeny={() => setShowTableOutlets(() => false)}
       />

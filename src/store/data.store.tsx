@@ -22,7 +22,7 @@ import {
 import { useSetting } from "./setting.store";
 import { optimizeName } from "@/utilities";
 import { useCredential } from "./credential.store";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useNotifications } from "./notifications.store";
 import { v4 } from "uuid";
 
@@ -79,7 +79,7 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
   const [modifyFetching, setModifyFetching] = useState<boolean>(false)
   const [checkingPromo, setCheckingPromo] = useState<boolean>(false)
   const [searchItems, setSearchItems] = useState<TMenuItem[]>();
-  const router = useRouter();
+  // const router = useRouter();
   const { sortBy, apiUrl } = useSetting()
   const { deviceId,
     refreshToken,
@@ -126,7 +126,8 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
           removeDeviceId();
           removeAccessToken();
           updateUser(undefined);
-          return router.replace("/")
+          window.location.href = "/";
+          // return router.replace("/")
         }
         console.log(res);
         if (p.ignoreError && !!p.fallBackData) return p.onSuccess(p.fallBackData);
@@ -259,7 +260,7 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
     });
   }
   function finishFetch() { setFetched(() => true) }
-  function updateItemData(data: TDataExtend[]) { setItemData(() => data) }
+  function updateItemData(data: TDataExtend[]) { setItemData(() => sortDataCore(data)) }
   function getImage(name: string) {
     const res = images.find(img => img.name.toLowerCase() == name.toLowerCase());
     return res;
@@ -361,6 +362,7 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
     updateItemData(temp)
   }
   function updateItemDataFromApi(data: TMainGroupItem[]) {
+    // console.log(data);
     let extendData: TDataExtend[] = data.map(d => ({
       ...d,
       subGroups: d.subGroups?.map(s => ({
@@ -376,6 +378,22 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
       }))
     }));
     setItemData(() => extendData)
+  }
+  function sortDataCore(data: TDataExtend[]) {
+    const sort = sortBy;
+    // if (!itemData) return;
+    const temp = [...data];
+    for (let i = 0; i < temp.length; i++) {
+      if (!temp[i].subGroups) continue;
+      for (let j = 0; j < temp[i].subGroups!.length; j++) {
+        if (!temp[i].subGroups![j].items) continue;
+        temp[i].subGroups![j].items = temp[i].subGroups![j].items!.sort((a, b) => !sort || sort != 'number' ?
+          optimizeName(a).toLowerCase().localeCompare(optimizeName(b).toLowerCase()) :
+          a.number.toLowerCase().localeCompare(b.number.toLowerCase()))
+      }
+    }
+    return temp;
+    // setItemData(() => temp);
   }
   function sortData(sort?: 'name' | 'number') {
     if (!sort) sort = sortBy;

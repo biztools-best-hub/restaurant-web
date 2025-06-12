@@ -8,24 +8,24 @@ const Orders: FC = () => {
   const {
     findWorkingOrder,
     removeWorkingOrder,
-    findWorkingGroup,
-    findWorkingSub,
+    // findWorkingGroup,
+    // findWorkingSub,
     isOrderFormOpened,
     closeOrderForm,
-    removeWorkingSub,
+    // removeWorkingSub,
     getCurrentItem,
     removeCurrentItem,
-    removeWorkingGroup
+    // removeWorkingGroup
   } = useOrders()
   useEffect(() => {
     const order = findWorkingOrder();
-    const group = findWorkingGroup();
-    const sub = findWorkingSub();
+    // const group = findWorkingGroup();
+    // const sub = findWorkingSub();
     const itm=getCurrentItem();
     if(!!itm)removeCurrentItem();
     if (!!order) removeWorkingOrder();
-    if (!!group) removeWorkingGroup();
-    if (!!sub) removeWorkingSub();
+    // if (!!group) removeWorkingGroup();
+    // if (!!sub) removeWorkingSub();
     if (isOrderFormOpened()) closeOrderForm();
   }, [])
   return (

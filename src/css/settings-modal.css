@@ -137,3 +137,14 @@
 .settings-footer .btn.btn-save:hover {
   background-color: #7dad2f;
 }
+
+.dcm-input {
+  color: #000 !important;
+  max-width: 100px !important;
+  padding: 2px 10px !important;
+  text-align: right;
+}
+.dcm-input:focus {
+  border: solid 1px #0084ff;
+  box-shadow: 0 0 2px #006ed4;
+}

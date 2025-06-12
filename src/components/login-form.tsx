@@ -1,7 +1,7 @@
 'use client'
 import { useCredential } from "@/store/credential.store";
 import { useSetting } from "@/store/setting.store";
-import { FC, FormEvent, useState } from "react";
+import { FC, FormEvent, useEffect, useRef, useState } from "react";
 import '@/css/login-form.css'
 import loadingAnimation from '@/animations/loading.json'
 import Lottie, { Options } from 'react-lottie'
@@ -25,8 +25,8 @@ const LoginForm: FC = () => {
     rendererSettings: { preserveAspectRatio: 'xMidYMid slice' }
   }
   const [loading, setLoading] = useState<boolean>(false)
-  const [username, setUsername] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
+  const usernameRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(() => true)
@@ -38,7 +38,10 @@ const LoginForm: FC = () => {
           'conicalhat-device-id': deviceId ?? ''
         },
         method: 'POST',
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({
+          username: usernameRef.current?.value,
+          password: passwordRef.current?.value
+        })
       });
       if (res.status != 200) {
         console.log(res)
@@ -62,7 +65,8 @@ const LoginForm: FC = () => {
       updateAccessToken(data.accessToken)
       updateRefreshToken(data.refreshToken)
       updateDeviceId(data.deviceId)
-      updateUser(data.user)
+      updateUser(data.user);
+      window.location.href = "/";
     } catch (e) {
       addNotification({
         id: v4(),
@@ -76,14 +80,9 @@ const LoginForm: FC = () => {
     }
     setLoading(() => false)
   }
-  function onUsernameInput(e: FormEvent<HTMLInputElement>) {
-    const tg: { value: string } = e.target as any
-    setUsername(() => tg.value)
-  }
-  function onPasswordInput(e: FormEvent<HTMLInputElement>) {
-    const tg: { value: string } = e.target as any
-    setPassword(() => tg.value)
-  }
+  useEffect(() => {
+    usernameRef.current?.focus()
+  }, []);
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <div className="form-wrap">
@@ -94,9 +93,10 @@ const LoginForm: FC = () => {
           <div className="form-section">
             <label htmlFor="login-username">Username</label>
             <input
-              value={username}
+              ref={usernameRef}
+              // value={username}
               disabled={loading}
-              onInput={onUsernameInput}
+              // onInput={onUsernameInput}
               type="text"
               id="login-username"
               placeholder="username"
@@ -105,17 +105,20 @@ const LoginForm: FC = () => {
           <div className="form-section">
             <label htmlFor="login-password">Password</label>
             <input
+              ref={passwordRef}
               type="password"
               id="login-password"
               disabled={loading}
-              onInput={onPasswordInput}
+              // onInput={onPasswordInput}
               placeholder="password"
               name="login-password" />
           </div>
         </div>
         <div className="form-foot">
           <button
-            disabled={!username || !password || loading}
+            // disabled={!username || !password || loading}
+            // disabled={initDisable || loading}
+            disabled={(!!usernameRef.current?.value && !!passwordRef.current?.value) || loading}
             type="submit"
             className="login-button">
             {loading ?

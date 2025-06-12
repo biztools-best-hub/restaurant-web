@@ -4,7 +4,10 @@ import { useCredential } from '@/store/credential.store';
 import { useCustomNavigation } from '@/store/navigation.store';
 import { useOrders } from '@/store/orders.store';
 import { useSetting } from '@/store/setting.store';
-import { usePathname, useRouter } from 'next/navigation';
+import {
+  usePathname
+  // , useRouter
+} from 'next/navigation';
 import { forwardRef, useState } from 'react';
 const BottomBar = forwardRef<any, any>((_, ref) => {
   const [openUser, setOpenUser] = useState<boolean>(false);
@@ -12,7 +15,7 @@ const BottomBar = forwardRef<any, any>((_, ref) => {
   const { navigate } = useCustomNavigation()
   const { removeWorkingOrder, removeWorkingSub, removeWorkingGroup } = useOrders()
   const { openSettings } = useSetting()
-  const router = useRouter();
+  // const router = useRouter();
   const pathName = usePathname();
   function changePage(p: string) {
     navigate(p);
@@ -23,7 +26,8 @@ const BottomBar = forwardRef<any, any>((_, ref) => {
     removeRefreshToken()
     removeDeviceId()
     updateUser(undefined)
-    router.replace("/")
+    window.location.href = "/";
+    // router.replace("/")
   }
   return (
     <div className="bottom-bar">

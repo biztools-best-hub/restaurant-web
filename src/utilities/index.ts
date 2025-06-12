@@ -35,18 +35,18 @@ export const saveCurrentItem = (oid: string) => localStorage.setItem(currentItem
 export const removeCurrentItem = () => localStorage.removeItem(currentItemKey);
 export const getWorkingSub = () => {
   const res = localStorage.getItem(workingSubKey);
-  if (!res) return
-  return res;
+  return res ?? undefined;
 }
 export const getWorkingGroup = () => {
   const res = localStorage.getItem(workingGroupKey);
-  if (!res) return;
-  return res;
+  return res ?? undefined;
 }
-export const saveWorkingSub = (sub: string) => {
+export const saveWorkingSub = (sub: string, fromWhere: string) => {
+  // console.log(`save group from ${fromWhere}: `, sub);
   localStorage.setItem(workingSubKey, sub)
 }
-export const saveWorkingGroup = (group: string) => {
+export const saveWorkingGroup = (group: string, fromWhere: string) => {
+  // console.log(`save group from ${fromWhere}: `, group);
   localStorage.setItem(workingGroupKey, group)
 }
 export const deleteWorkingSub = () => {
@@ -160,17 +160,26 @@ export const tryClearOrders = () => {
   if (!localStorage.getItem(orderKey)) return;
   localStorage.removeItem(orderKey);
 }
-export const retrieveDeviceId = () => localStorage.getItem(deviceIdKey) ?? undefined
-export const removeDeviceId = () => localStorage.removeItem(deviceIdKey)
-export const setDeviceId = (v: string) => localStorage.setItem(deviceIdKey, v)
-export const retrieveAccessToken = () => getCookie(accessTokenKey)
-export const removeAccessToken = () => deleteCookie(accessTokenKey)
-export const setAccessToken = (v: string) => setCookie(accessTokenKey, v, 12)
-export const retrieveRefreshToken = () => getCookie(refreshTokenKey)
-export const removeRefreshToken = () => deleteCookie(refreshTokenKey)
-export const setRefreshToken = (v: string) => setCookie(refreshTokenKey, v, 15 * 24)
+// export const retrieveDeviceId = () => localStorage.getItem(deviceIdKey) ?? undefined;
+// export const removeDeviceId = () => localStorage.removeItem(deviceIdKey);
+// export const setDeviceId = (v: string) => localStorage.setItem(deviceIdKey, v);
+export const setDeviceId = (v: string) => setSession(deviceIdKey, v);
+export const retrieveDeviceId = () => getSession(deviceIdKey) ?? undefined;
+export const removeDeviceId = () => removeSession(deviceIdKey);
+// export const retrieveAccessToken = () => getCookie(accessTokenKey);
+// export const removeAccessToken = () => deleteCookie(accessTokenKey);
+// export const setAccessToken = (v: string) => setCookie(accessTokenKey, v, 12)
+export const setAccessToken = (v: string) => setSession(accessTokenKey, v);
+export const retrieveAccessToken = () => getSession(accessTokenKey) ?? undefined;
+export const removeAccessToken = () => removeSession(accessTokenKey);
+// export const retrieveRefreshToken = () => getCookie(refreshTokenKey);
+// export const removeRefreshToken = () => deleteCookie(refreshTokenKey);
+// export const setRefreshToken = (v: string) => setCookie(refreshTokenKey, v, 15 * 24);
+export const setRefreshToken = (v: string) => setSession(refreshTokenKey, v);
+export const retrieveRefreshToken = () => getSession(refreshTokenKey) ?? undefined;
+export const removeRefreshToken = () => removeSession(refreshTokenKey);
 export const setupOrders = (orders: TPendingOrder[]) => {
-  localStorage.setItem(orderKey, JSON.stringify(orders))
+  localStorage.setItem(orderKey, JSON.stringify(orders));
 }
 export const mergeOrderInput = (oldOrder: TPendingOrder, newOrder: TPendingOrder) => {
   oldOrder.adult = newOrder.adult;
@@ -194,15 +203,18 @@ export const retrieveTheme = (): TTheme => {
   return { color: color as TThemeColor, isDark: mode }
 }
 export const getSettingsConfig = () => {
+  const originDecimalDigits = localStorage.getItem("decimal-digits");
+  const decimalDigits = originDecimalDigits ? Number(originDecimalDigits) : 2;
   const sortByFrom = localStorage.getItem('menu-items-sort-by');
   const sortBy: 'name' | 'number' = sortByFrom ? sortByFrom as 'name' | 'number' : 'name';
-  const isShowItemImage = !!localStorage.getItem('show-menu-item-images');
+  const isShowItemImage = localStorage.getItem('show-menu-item-images') == "true";
   const menuDisplaysFrom = localStorage.getItem('menu-displays');
   const menuDisplays: ('name' | 'name2' | 'productDescription')[] = menuDisplaysFrom ? menuDisplaysFrom.split(',').map(d => d as 'name' | 'name2' | 'productDescription') : ['name'];
   return {
     sortBy,
+    decimalDigits,
     isShowItemImage,
-    menuDisplays
+    menuDisplays,
   }
 }
 export const setThemeColor = (c: TThemeColor) => localStorage.setItem(themeColorKey, c)
@@ -211,11 +223,20 @@ export const toggleThemeMode = () => {
   const input = mode == 'dark' ? 'light' : 'dark'
   localStorage.setItem(themeModeKey, input)
 }
+function setSession(name: string, value: string) {
+  sessionStorage.setItem(name, value);
+}
 function setCookie(name: string, value: string, hours: number) {
   const d = new Date();
   d.setTime(d.getTime() + (hours * 60 * 60 * 1000));
   let expires = "expires=" + d.toUTCString();
   document.cookie = name + "=" + value + ";" + expires + ";path=/";
+}
+function removeSession(name: string) {
+  sessionStorage.removeItem(name);
+}
+function getSession(name: string) {
+  return sessionStorage.getItem(name);
 }
 function getCookie(name: string) {
   let key = name + "=";

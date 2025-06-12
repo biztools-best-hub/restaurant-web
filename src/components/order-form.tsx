@@ -19,7 +19,6 @@ import {
   optimizeName
 } from "@/utilities";
 import { v4 } from "uuid";
-import CompareBox from "./compare-box";
 import { useDataFromApi } from "@/store/data.store";
 import Skeleton from "./skeleton";
 import { useSetting } from "@/store/setting.store";
@@ -31,14 +30,20 @@ type TOrderFormProps = {
   afterModify(fn: () => void): void
   isNew: boolean
   table?: string
-  onInput: (fn: (itm: TPendingItem) => void) => void
+  onDecreaseQtyItem(itm: TPendingItem): void
+  onIncreaseQtyItem(itm: TPendingItem): void
+  onInput: (fn: (itm: TPendingItem, isQtyItem: boolean) => void) => void
+  onInputBatch: (fn: (itemList: TPendingItem[]) => void) => void
 }
 
 const OrderForm: FC<TOrderFormProps> = ({
   open,
-  onHide,
   isNew,
   table,
+  onHide,
+  onDecreaseQtyItem,
+  onIncreaseQtyItem,
+  onInputBatch,
   onInput,
   onAction,
   afterModify
@@ -54,8 +59,6 @@ const OrderForm: FC<TOrderFormProps> = ({
   const { addNotification } = useNotifications()
   const { isMobileNotTab } = useSetting()
   const [showAlertRemoveItem, setShowAlertRemoveItem] = useState<boolean>(false);
-  const [showCompare, setShowCompare] = useState<boolean>(false);
-  const [currentExist, setCurrentExist] = useState<TPendingOrder>();
   const [remarkItem, setRemarkItem] = useState<TPendingItem>();
   const [remarkChildItem, setRemarkChildItem] = useState<TSelectedModifyItem>();
   const [currency, setCurrency] = useState(order?.items?.[0]?.localSalePrice?.[0] ?? '');
@@ -93,14 +96,42 @@ const OrderForm: FC<TOrderFormProps> = ({
     const o: TPendingOrder = { ...order, items: items as TPendingItem[] };
     return o;
   }
-  const addItem = (itm: TPendingItem) => {
+  function addItemBatch(itemList: TPendingItem[]) {
+    if (!!order && order.items.length > 0) {
+      const tempOrder = getWorkingOrder();
+      const temp = !!tempOrder ? [...tempOrder.items] : [];
+      for (let itm of itemList) {
+        const tg = temp.find(g => g.oid == itm.oid && g.rowOid == itm.rowOid)
+        if (tg) tg.qty += itm.qty;
+        else temp.push({ ...itm, isNew: true })
+      }
+      const o = genNewOrder(temp);
+      if (!o) return;
+      putWorkingOrder(o);
+      setOrder(() => o);
+      setCurrentLen(() => temp.length)
+      return;
+    }
+    let o = genNewOrder(itemList.map(itm => ({ ...itm, isNew: true })));
+    if (!o) o = {
+      oid: v4(),
+      username: user?.username ?? '',
+      items: itemList.map(itm => ({ ...itm, isNew: true })),
+      time: new Date()
+    }
+    if (o) putWorkingOrder(o);
+    setOrder(() => o);
+    setCurrentLen(() => 1)
+  }
+  const addItem = (itm: TPendingItem, isQtyItem: boolean) => {
     if (!!order && order.items.length > 0) {
       if (!itm.hasModifiedItemGroup) {
         const tempOrder = getWorkingOrder();
         const temp = !!tempOrder ? [...tempOrder.items] : [];
         const tg = temp.find(g => g.oid == itm.oid && g.rowOid == itm.rowOid)
         if (tg) {
-          tg.qty += itm.qty;
+          if (isQtyItem) tg.qty = itm.qty;
+          else tg.qty += itm.qty;
           const o = genNewOrder(temp);
           if (!o) return;
           putWorkingOrder(o);
@@ -115,6 +146,8 @@ const OrderForm: FC<TOrderFormProps> = ({
         setCurrentLen(() => all.length)
         return;
       }
+      // console.log(itm);
+      //---
       const reserve = [...order.items];
       if (reserve.length > 0) {
         let canMerge = false;
@@ -206,6 +239,10 @@ const OrderForm: FC<TOrderFormProps> = ({
       return checkedList.length == t.selectedModifyItems.length;
     })
     if (mTg) {
+      if (mTg.askQty) {
+        onIncreaseQtyItem(mTg);
+        return;
+      }
       mTg.qty++;
       const o = genNewOrder(mTemp);
       if (!o) return;
@@ -213,7 +250,6 @@ const OrderForm: FC<TOrderFormProps> = ({
       setOrder(() => o);
     }
   }
-
   function onDecr(oid: string, selectedItems: TSelectedModifyItem[], rowOid?: string) {
     const mTemp = !!order ? [...order.items] : [];
     const mTg = mTemp?.find(t => {
@@ -230,6 +266,10 @@ const OrderForm: FC<TOrderFormProps> = ({
       return checkedList.length == t.selectedModifyItems.length;
     })
     if (!mTg) return;
+    if (mTg.askQty) {
+      onDecreaseQtyItem(mTg);
+      return;
+    }
     if (mTg.qty < 2) {
       setConfirmParams({ oid, selectedItems })
       setShowAlertRemoveItem(true)
@@ -240,7 +280,8 @@ const OrderForm: FC<TOrderFormProps> = ({
     if (o) putWorkingOrder(o);
     setOrder(() => o)
   }
-  onInput(addItem)
+  onInput(addItem);
+  onInputBatch(addItemBatch);
   function onRemark(v: TPendingItem, child?: TSelectedModifyItem) {
     setRemarkItem(() => v);
     if (!!child) setRemarkChildItem(() => child);
@@ -262,44 +303,46 @@ const OrderForm: FC<TOrderFormProps> = ({
       setRemarkItem(() => undefined);
       setRemarkChildItem(() => undefined)
     }
-    if (!isMobileNotTab) checkPromotion(order, (d) => {
-      setOrderAfterCheckPromo(() => d);
-      const list: TPendingItem[] = d.items;
-      type NeededProp = { total?: number, amount?: number, tax?: number, salePrice: number, qty: number };
-      const flatten: NeededProp[] = [];
-      if (list.length > 0) {
-        for (let t of d.items) {
-          flatten.push({
-            total: t.total,
-            amount: t.amount,
-            tax: t.taxAmount,
-            salePrice: t.salePrice,
-            qty: t.qty
-          });
-          if (!!t.selectedModifyItems && t.selectedModifyItems.length > 0) {
-            for (let m of t.selectedModifyItems) {
-              flatten.push({
-                salePrice: m.salePrice,
-                qty: m.qty * t.qty,
-                amount: m.amount ? m.amount * t.qty : undefined,
-                total: m.total ? m.total * t.qty : undefined,
-                tax: m.taxAmount ? m.taxAmount * t.qty : undefined
-              })
+    if (!isMobileNotTab) {
+      checkPromotion(order, (d) => {
+        setOrderAfterCheckPromo(() => d);
+        const list: TPendingItem[] = d.items;
+        type NeededProp = { total?: number, amount?: number, tax?: number, salePrice: number, qty: number };
+        const flatten: NeededProp[] = [];
+        if (list.length > 0) {
+          for (let t of d.items) {
+            flatten.push({
+              total: t.total,
+              amount: t.amount,
+              tax: t.taxAmount,
+              salePrice: t.salePrice,
+              qty: t.qty
+            });
+            if (!!t.selectedModifyItems && t.selectedModifyItems.length > 0) {
+              for (let m of t.selectedModifyItems) {
+                flatten.push({
+                  salePrice: m.salePrice,
+                  qty: m.qty * t.qty,
+                  amount: m.amount ? m.amount * t.qty : undefined,
+                  total: m.total ? m.total * t.qty : undefined,
+                  tax: m.taxAmount ? m.taxAmount * t.qty : undefined
+                })
+              }
             }
           }
         }
-      }
-      const grandTotal = flatten.length < 1 ? 0 : flatten.map(l => l.total ?? l.amount ?? (l.salePrice * l.qty)).reduce((a, b) => a + b);
-      const sTotal = flatten.length < 1 ? 0 : flatten.map(l => l.amount ?? (l.salePrice * l.qty)).reduce((a, b) => a + b);
-      const totalTax = flatten.length < 1 ? 0 : flatten.map(l => l.tax ?? 0).reduce((a, b) => a + b);
-      let dc = (sTotal + totalTax) - grandTotal;
-      if (dc < 0) dc = 0;
-      setTax(() => Math.round(totalTax * 100) / 100);
-      setDiscount(() => Math.round(dc * 100) / 100);
-      setSubTotal(() => Math.round(sTotal * 100) / 100);
-      setTotal(() => Math.round(grandTotal * 100) / 100);
-      setPromoItems(() => list);
-    });
+        const grandTotal = flatten.length < 1 ? 0 : flatten.map(l => l.total ?? l.amount ?? (l.salePrice * l.qty)).reduce((a, b) => a + b);
+        const sTotal = flatten.length < 1 ? 0 : flatten.map(l => l.amount ?? (l.salePrice * l.qty)).reduce((a, b) => a + b);
+        const totalTax = flatten.length < 1 ? 0 : flatten.map(l => l.tax ?? 0).reduce((a, b) => a + b);
+        let dc = (sTotal + totalTax) - grandTotal;
+        if (dc < 0) dc = 0;
+        setTax(() => Math.round(totalTax * 100) / 100);
+        setDiscount(() => Math.round(dc * 100) / 100);
+        setSubTotal(() => Math.round(sTotal * 100) / 100);
+        setTotal(() => Math.round(grandTotal * 100) / 100);
+        setPromoItems(() => list);
+      });
+    }
   }, [order]);
   return (
     <div className={`order-form${open ? ' open' : ''}`}>
@@ -320,18 +363,19 @@ const OrderForm: FC<TOrderFormProps> = ({
         <div className="body-wrap" ref={bodyWrapRef}>
           <div className="body" ref={bodyRef}>
             {!!orderAfterCheckPromo && orderAfterCheckPromo.items.length > 0 &&
-              orderAfterCheckPromo.items.map((ip, i) =>
-              (<OrderItem
-                key={ip.oid + i}
-                canModify={true}
-                promoItem={promoItems?.find(p => p.oid == ip.oid)}
-                onModify={(itm) => {
-                  onAction(nextModeAfterTable, 'show-modify', itm)
-                }}
-                onRemark={(child) => onRemark(ip, child)}
-                itm={ip}
-                onIncr={(oid, items, rowOid) => onIncr(oid, items, rowOid)}
-                onDecr={(oid, items, rowOid) => onDecr(oid, items, rowOid)} />))}
+              orderAfterCheckPromo.items.map((ip, i) => {
+                return (<OrderItem
+                  key={ip.oid + i}
+                  canModify={true}
+                  promoItem={promoItems?.find(p => p.oid == ip.oid)}
+                  onModify={(itm) => {
+                    onAction(nextModeAfterTable, 'show-modify', itm)
+                  }}
+                  onRemark={(child) => onRemark(ip, child)}
+                  itm={ip}
+                  onIncr={(oid, items, rowOid) => onIncr(oid, items, rowOid)}
+                  onDecr={(oid, items, rowOid) => onDecr(oid, items, rowOid)} />)
+              })}
           </div>
         </div>
         {checkingPromo ?
@@ -416,7 +460,7 @@ const OrderForm: FC<TOrderFormProps> = ({
         </div>
       </div>
       <ConfirmAlert
-        msg={<div style={{ display: 'flex', gap: 6 }}>
+        msg={<div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
           <span>You are going to remove this item.</span>
           <span>Are you sure?</span>
         </div>}
@@ -456,14 +500,14 @@ const OrderForm: FC<TOrderFormProps> = ({
             }
             return checkedList.length != t.selectedModifyItems.length;
           });
-          if (res.length < 1) {
-            removeOrder(order.oid)
-            removeWorkingOrder()
-            setOrder(() => undefined);
-            setShowAlertRemoveItem(false);
-            onHide();
-            return;
-          }
+          // if (res.length < 1) {
+          //   removeOrder(order.oid)
+          //   removeWorkingOrder()
+          //   setOrder(() => undefined);
+          //   setShowAlertRemoveItem(false);
+          //   onHide();
+          //   return;
+          // }
           const o = genNewOrder(res);
           if (!o) return;
           putWorkingOrder(o);
@@ -473,24 +517,6 @@ const OrderForm: FC<TOrderFormProps> = ({
         denyDisabled={false}
         confirmDisabled={false}
         onDeny={() => { setShowAlertRemoveItem(false) }} />
-      <ConfirmAlert
-        show={showCompare}
-        onHide={() => setShowCompare(false)}
-        onConfirm={() => { }}
-        onDeny={() => { }}
-        hidConfirm={true}
-        hideDeny={true}
-        denyDisabled={false}
-        confirmDisabled={false}
-        beforeConfirm={() => { }}
-        beforeDeny={() => { }}
-        icon="ri-file-copy-2-fill"
-        title="Compare"
-        msg={!!currentExist && !!order && <CompareBox
-          existOrder={currentExist}
-          newOrder={order as TPendingOrder}
-        />}
-      />
       <ConfirmAlert
         show={!!remarkItem}
         onHide={() => {
