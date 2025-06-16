@@ -4,8 +4,8 @@
     "show-item-image": "true | false",
     "api-url": "depends on your hosting api"
   },
-  "api-url": "http://127.0.0.1:9999",
-  "temp-api-url": "http://localhost:44390",
+  "temp-api-url": "http://127.0.0.1:9999",
+  "api-url": "http://localhost:44390",
   "sort-by": "name",
   "show-item-image": "true"
 }
