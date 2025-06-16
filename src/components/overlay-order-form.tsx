@@ -259,10 +259,8 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
     }, [prevLen, currentLen])
     useEffect(() => {
       if (!currentOrder.items || !needCheckPrice) return;
-      // if (!currentOrder.items) return;
-      // if (!needCheckPrice) return;
       if (!currency) {
-        const s = currentOrder.items?.[0].localSalePrice[0];
+        const s = currentOrder.items?.[0]?.localSalePrice[0];
         setCurrency(() => s);
       }
       setCurrentScrollPos(() => bodyWrapRef.current?.scrollTop);

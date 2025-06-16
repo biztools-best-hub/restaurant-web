@@ -118,7 +118,7 @@ const LoginForm: FC = () => {
           <button
             // disabled={!username || !password || loading}
             // disabled={initDisable || loading}
-            disabled={(!!usernameRef.current?.value && !!passwordRef.current?.value) || loading}
+            disabled={loading}
             type="submit"
             className="login-button">
             {loading ?
