@@ -1343,7 +1343,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
             onSelect={({ table, outlet }) => {
               const adult = adultAndChildRef.current?.adult ?? 0;
               const child = adultAndChildRef.current?.child ?? 0;
-              if (adult <= 0 && child <= 0) {
+              if (!!user?.requirePax && adult <= 0 && child <= 0) {
                 const notifyParams: TNotificationModel = {
                   type: 'error',
                   autoClose: true,
