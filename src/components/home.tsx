@@ -19,7 +19,7 @@ import ModifyItemsView from "@/components/modify-items-view";
 import { delay, exist, optimizeName, optimizePrice } from "@/utilities";
 import { useDataFromApi } from "@/store/data.store";
 import ImageBox from "@/components/image-box";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useOrders } from "@/store/orders.store";
 import noItemsAnimation from '@/animations/no-items.json';
 import Lottie, { Options } from "react-lottie";
@@ -90,8 +90,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   const { addNotification } = useNotifications();
   const qtyRef = useRef<{
     getQty(): number
-    // onEnter(fn: () => void): void
-    // onEscape(fn: () => void): void
     focus(): void,
     reset(): void
   } | null>(null)
@@ -120,6 +118,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   const [remarkChildItem, setRemarkChildItem] = useState<TSelectedModifyItem>();
   const [currentGroup, setCurrentGroup] = useState<string | undefined>()
   const [currentSub, setCurrentSub] = useState<string | undefined>()
+  const [refresh, setRefresh] = useState<number>(0);
   const [groups, setGroups] = useState<TDataGroup[]>(fetched ?
     itemData?.map(g =>
       ({ oid: g.oid, name: g.name, name2: g.name2 })) ?? [] : [])
@@ -151,7 +150,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
   const longestGroupRef = useRef<HTMLDivElement | null>(null);
   const longestSubRef = useRef<HTMLDivElement | null>(null);
   const floatCartRef = useRef<({ reload(): void }) | null>(null)
-  const floatOrderRef = useRef<({ reload(): void }) | null>(null)
+  const floatOrderRef = useRef<({ reload(): void, clear: () => void }) | null>(null)
   const onAddItemRef = useRef<((itm: TPendingItem, isQtyItem: boolean) => void)>(() => { })
   const onAddItemBatchRef = useRef<((itemList: TPendingItem[]) => void)>(() => { });
   const indicatorRef = useRef<HTMLDivElement | null>(null)
@@ -208,7 +207,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
         setShowQty(() => false)
         qtyRef.current?.reset();
         if (!initialOpen) {
-          //  router.push('/doing-order')
           window.location.href = '/doing-order';
         }
         return;
@@ -244,7 +242,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
         floatCartRef.current?.reload();
         floatOrderRef.current?.reload();
         if (!initialOpen) {
-          // router.push('/doing-order');
           window.location.href = '/doing-order';
         }
       } else if (itm.from == "from-item") {
@@ -475,12 +472,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
     setShowSearchList(() => true);
   }
   useEffect(() => {
-    // qtyRef.current?.onEnter(() => {
-    //   qtyAlertRef.current?.confirm();
-    // });
-    // qtyRef.current?.onEscape(() => {
-    //   qtyAlertRef.current?.close();
-    // });
     let gr: string | undefined;
     let sb: string | undefined;
     if (!currentGroup) {
@@ -496,7 +487,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
       if (initialOpen) doSearch(searchValue);
       else clearSearch()
     }
-    // if (!fetched || (!itemData?.[0]?.subGroups)) {
     fetchData(gr, sb, data => {
       setGroups(() => data.map(d =>
       ({
@@ -510,7 +500,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
       if (!sb) setCurrentSub(() => g?.subGroups?.[0]?.oid ?? 'no-sub');
       mainEls.current = data.map(d => ({ oid: d.oid, el: null, hasImage: false }));
     });
-    // }
     if (initialOpen) {
       setOpenOrder(() => true);
       const order = findWorkingOrder();
@@ -828,10 +817,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                               return;
                             }
                             if (itm.askQty) {
-                              // setShowQty(true);
-                              // setTimeout(() => qtyRef.current?.focus(), 100);
                               setQtyItem({ item: itm, from: "normal-menu" });
-                              // setQtyFrom("normal-menu");
                               return;
                             }
                             let ip: TPendingItem;
@@ -865,7 +851,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                             floatOrderRef.current?.reload();
                             if (!initialOpen) {
                               window.location.href = '/doing-order';
-                              //  router.push('/doing-order')
                             }
                           }
                           return <div
@@ -1017,6 +1002,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
       }
       <OrderForm
         open={openOrder}
+        refresh={refresh}
         onDecreaseQtyItem={itm => {
           setQtyItem({ item: itm, from: "from-item" });
         }}
@@ -1051,8 +1037,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           } else if (!!modifyItem) setItemToModify(modifyItem);
         }}
         onHide={() => {
-          window.location.href = "/"
-          // router.replace('/')
+          setRefresh(p => p + 1);
+          floatCartRef.current?.reload();
+          floatOrderRef.current?.clear();
         }}
         onInputBatch={registerOnAddItemBatch}
         onInput={registerOnAddItem}
@@ -1214,7 +1201,6 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           floatCartRef.current?.reload();
           floatOrderRef.current?.reload();
           if (!initialOpen) {
-            //  router.push('/doing-order')
             window.location.href = '/doing-order';
           }
           onClose();
@@ -1290,8 +1276,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
         onConfirm={() => {
           if (confirmRemoveParams?.mode == 'order') {
             setConfirmRemoveParams(() => undefined);
-            window.location.href = "/"
-            // router.replace("/");
+            setRefresh(p => p + 1);
+            floatCartRef.current?.reload();
+            floatOrderRef.current?.clear();
           }
         }}
         onDeny={() => { }}
@@ -1343,7 +1330,7 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
             onSelect={({ table, outlet }) => {
               const adult = adultAndChildRef.current?.adult ?? 0;
               const child = adultAndChildRef.current?.child ?? 0;
-              if (!!user?.requirePax && adult <= 0 && child <= 0) {
+              if (!!user?.requirePax && adult <= 0 && child <= 0 && nextModeAfterTable == 'confirm') {
                 const notifyParams: TNotificationModel = {
                   type: 'error',
                   autoClose: true,
@@ -1381,8 +1368,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
                     removeWorkingSub()
                     removeWorkingOrder();
                     setShowTableSelection(() => false)
-                    window.location.href = "/"
-                    // router.replace('/')
+                    setRefresh(p => p + 1);
+                    floatCartRef.current?.reload();
+                    floatOrderRef.current?.clear();
                   });
                 }}>
                 {confirmingOrder ?
@@ -1459,8 +1447,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
               removeWorkingGroup()
               removeWorkingSub()
               setShowTableSelection(() => false)
-              window.location.href = "/"
-              // router.replace('/')
+              setRefresh(p => p + 1);
+              floatCartRef.current?.reload();
+              floatOrderRef.current?.clear();
             });
             return;
           }
@@ -1489,8 +1478,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           removeWorkingOrder();
           removeWorkingGroup()
           removeWorkingSub()
-          window.location.href = "/"
-          // router.replace('/')
+          setRefresh(p => p + 1);
+          floatCartRef.current?.reload();
+          floatOrderRef.current?.clear();
         }}
         beforeDeny={() => {
           if (nextModeAfterTable == 'confirm') return;
@@ -1499,8 +1489,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           removeWorkingOrder();
           removeWorkingGroup();
           removeWorkingSub();
-          window.location.href = "/"
-          // router.replace('/')
+          setRefresh(p => p + 1);
+          floatCartRef.current?.reload();
+          floatOrderRef.current?.clear();
         }}
         onDeny={() => setShowTableSelection(false)}
       />
@@ -1519,8 +1510,9 @@ export const Home: FC<THomeProps> = ({ initialOpen }) => {
           removeWorkingSub();
           setCurrentOutlet(() => undefined)
           setShowAlertDismissOrder(false);
-          window.location.href = "/"
-          // router.replace('/');
+          setRefresh(p => p + 1);
+          floatCartRef.current?.reload();
+          floatOrderRef.current?.clear();
         }}
         denyDisabled={false}
         confirmDisabled={false}

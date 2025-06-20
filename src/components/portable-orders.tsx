@@ -17,7 +17,7 @@ type TPortableOrdersProps = {
 }
 
 const PortableOrders = forwardRef<{}, TPortableOrdersProps>(
-  ({ table, onSelect, apiTable, onAddNew }, _) => {
+  ({ table, onSelect, onAddNew }, _) => {
     const { getOrdersByTable } = useOrders()
     const { fetchOrders } = useDataFromApi()
     const [orders, setOrders] = useState<TPendingOrder[]>([])

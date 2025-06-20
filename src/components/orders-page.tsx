@@ -14,8 +14,6 @@ import { optimizeDate, optimizeName } from "@/utilities";
 import BusyScreen from "./busy-screen";
 import { useSetting } from "@/store/setting.store";
 import FloatOrderForm from "./float-order-form";
-// import { useRouter } from "next/navigation";
-// import AdultAndChildControlBox from "./adult-child-control-box";
 import PortableOutlet from "./portable-outlet";
 import { v4 } from "uuid";
 import { useTopBar } from "@/store/top-bar.store";
@@ -39,7 +37,6 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
     onDate: new Date(),
     paidStatus: 'unpaid'
   })
-  // const router = useRouter()
   const [openStatus, setOpenStatus] = useState<boolean>(false);
   const {
     pending,
@@ -66,7 +63,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
   const [confirmedOrders, setConfirmedOrders] = useState<TPendingOrder[]>([])
   const { user } = useCredential()
   const [show, setShow] = useState(false)
-  const floatOrderRef = useRef<{ reload: () => void } | null>(null)
+  const floatOrderRef = useRef<{ reload: () => void, clear: () => void } | null>(null)
   let dateRef: HTMLInputElement | null = null;
   const adultChildRef = useRef<({ adult: number, child: number }) | null>(null)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
@@ -74,30 +71,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
     initialOpen ? findWorkingOrder() : undefined)
   const [currentMode, setCurrentMode] = useState<'delete' | 'view'>()
   const afterSelectTable: 'keep' | 'confirm' = 'keep';
-  // const [afterSelectTable, setAfterSelectTable] = useState<'keep' | 'confirm'>('keep')
   const { addNotification } = useNotifications()
-  // let currentOutlet: {
-  //   oid: string
-  //   outlet: {
-  //     oid: string
-  //     name: string
-  //   }
-  //   table: {
-  //     oid: string
-  //     number: string
-  //   }
-  // } | undefined = undefined;
-  // const [currentOutlet, setCurrentOutlet] = useState<{
-  //   oid: string
-  //   outlet: {
-  //     oid: string
-  //     name: string
-  //   }
-  //   table: {
-  //     oid: string
-  //     number: string
-  //   }
-  // }>()
   const remarkRef = useRef<HTMLInputElement | null>(null);
   const [remarkItem, setRemarkItem] = useState<TPendingItem>();
   const [remarkChildItem, setRemarkChildItem] = useState<TSelectedModifyItem>();
@@ -198,19 +172,6 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
       setLoading(() => false)
     })
   }, [filter, currentTab])
-  // useEffect(() => {
-  //   if (!currentOutlet) return
-  //   if (!tableOutletRef.current) return;
-  //   const order = findWorkingOrder();
-  //   const od = {
-  //     outlet: currentOutlet,
-  //     items: order?.items,
-  //     order,
-  //     oid: currentOutlet.oid.trim().length > 0 ? currentOutlet.oid : v4(),
-  //     isConfirm: afterSelectTable == 'confirm'
-  //   };
-  //   tableOutletRef.current?.confirm(od)
-  // }, [currentOutlet])
   useEffect(() => {
     clearSearch();
     fetchOrders({
@@ -487,7 +448,6 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           onAction={() => { }}
           onClose={() => {
             setCurrentOrder(() => undefined);
-            // router.replace("/orders");
             window.location.href = "/orders";
           }} show={!!currentOrder}
           fromOrdersPage
@@ -611,7 +571,6 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           removeOrder(currentOrder.oid);
           setShowRemoveOrder(() => false)
           setCurrentOrder(() => undefined);
-          // router.replace("/orders");
           window.location.href = "/orders";
         }}
         beforeDeny={() => { }}
@@ -627,9 +586,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
         denyDisabled={false}
         confirmDisabled={false}
         ref={tableOutletRef}
-        // icon={afterSelectTable == 'confirm' ? 'ri-checkbox-circle-fill' : undefined}
         hidConfirm={true}
-        // hideDeny={afterSelectTable == 'confirm'}
         hideDeny={false}
         show={showTableOutlets}
         msg={<div className="portable-tables-dialog">
@@ -649,112 +606,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           <PortableOutlet
             open={showTableOutlets}
             forConfirm={false}
-            // forConfirm={afterSelectTable == 'confirm'}
             onSelect={() => { }} />
-          {/* {afterSelectTable == 'confirm' &&
-            <div className="adult-child-container" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <AdultAndChildControlBox ref={adultChildRef} />
-              <button
-                className="btn-take-away"
-                onClick={() => {
-                  const order = findWorkingOrder();
-                  if (!order) return;
-                  takeAway({
-                    ...order,
-                    adult: adultChildRef.current?.adult ?? 0,
-                    child: adultChildRef.current?.child ?? 0,
-                    time: new Date(new Date(order.time).toUTCString())
-                  }, _ => {
-                    removeOrder(order.oid)
-                    removeWorkingGroup()
-                    removeWorkingSub()
-                    removeWorkingOrder();
-                    setShowTableOutlets(() => false)
-                    router.replace('/')
-                  });
-                }}>
-                {confirmingOrder ?
-                  <div style={{
-                    maxWidth: 20,
-                    maxHeight: 20,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    overflow: 'hidden'
-                  }}>
-                    <Lottie options={opt} width={40} height={40} />
-                  </div> :
-                  <i className="ri-shopping-bag-4-fill"></i>}
-                <span>Take away</span>
-              </button>
-              <button
-                className="btn-confirm"
-                onClick={() => {
-                  const order = findWorkingOrder();
-                  if (!order) return;
-                  if (!order.table) {
-                    takeAway({
-                      ...order,
-                      adult: adultChildRef.current?.adult ?? 0,
-                      child: adultChildRef.current?.child ?? 0,
-                      time: new Date(new Date(order.time).toUTCString())
-                    }, _ => {
-                      removeOrder(order.oid)
-                      removeWorkingGroup()
-                      removeWorkingSub()
-                      removeWorkingOrder();
-                      setShowTableOutlets(() => false)
-                      router.replace('/')
-                    });
-                    return;
-                  }
-                  console.log("this");
-                  if (!!user?.requirePax && (adultChildRef.current?.adult ?? 0) < 1 && (adultChildRef.current?.child ?? 0) < 1) {
-                    const notifyParams: TNotificationModel = {
-                      type: 'error',
-                      autoClose: true,
-                      duration: 5000,
-                      content: 'Adult or Child information is required!',
-                      id: v4(),
-                      isShowing: true
-                    }
-                    addNotification(notifyParams);
-                    return;
-                  }
-                  dineIn({
-                    ...order,
-                    adult: adultChildRef.current?.adult ?? 0,
-                    child: adultChildRef.current?.child ?? 0,
-                    time: new Date(new Date(order.time).toUTCString())
-                  }, _ => {
-                    removeOrder(order.oid)
-                    removeWorkingGroup()
-                    removeWorkingSub()
-                    removeWorkingOrder();
-                    setShowTableOutlets(() => false)
-                    router.replace('/')
-                  })
-                }}>
-                {confirmingOrder ?
-                  <div style={{
-                    maxWidth: 20,
-                    maxHeight: 20,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    overflow: 'hidden'
-                  }}>
-                    <Lottie options={opt} width={40} height={40} />
-                  </div> :
-                  <i className="ri-check-fill"></i>}
-                <span>Confirm</span>
-              </button>
-            </div>
-          } */}
         </div>}
         denyText="Skip"
         confirmText="Ok"
@@ -814,7 +666,7 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
               removeWorkingSub()
               setShowTableOutlets(() => false)
               // router.replace('/')
-              window.location.href = "/";
+              window.location.href = "/doing-order";
             });
             return;
           }
@@ -842,18 +694,15 @@ const OrdersPage: FC<TOrdersPageProps> = ({ initialOpen }) => {
           removeWorkingOrder();
           removeWorkingGroup();
           removeWorkingSub();
-          // router.replace('/');
-          window.location.href = "/";
+          window.location.href = "/doing-order";
         }}
         beforeDeny={() => {
-          // if (afterSelectTable == 'confirm') return;
           const order = findWorkingOrder();
           if (order) addRangePending(order.items, true, order.oid);
           removeWorkingOrder();
           removeWorkingGroup();
           removeWorkingSub();
-          // router.replace('/')
-          window.location.href = "/";
+          window.location.href = "/doing-order";
         }}
         onDeny={() => setShowTableOutlets(() => false)}
       />

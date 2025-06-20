@@ -5,7 +5,6 @@ import { useOrders } from "@/store/orders.store";
 import {
   TConfirmRefs,
   TKitItem,
-  // TMenuItem,
   TModifyItemsViewRef,
   TNotificationModel,
   TPendingItem,
@@ -17,7 +16,6 @@ import { useDataFromApi } from "@/store/data.store";
 import Skeleton from "./skeleton";
 import {
   usePathname
-  // , useRouter
 } from "next/navigation";
 import ConfirmAlert from "./confirm-alert";
 import PortableOutlet from "./portable-outlet";
@@ -30,7 +28,7 @@ import { useNotifications } from "@/store/notifications.store";
 import { v4 } from "uuid";
 import QtyBox from "./qty-box";
 
-const FloatOrderForm = forwardRef<{ reload(): void },
+const FloatOrderForm = forwardRef<{ reload(): void, clear(): void },
   {
     show: boolean
     onAction(mode: "keep" | "confirm", nextJob: "show-tables" | "show-dismiss" | "show-modify", modifyItem?: TPendingItem): void
@@ -59,8 +57,8 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       removeWorkingSub,
       removeOrder } = useOrders();
     const editable = !fromOrdersPage || pathname == '/orders/doing' || pathname == '/tables/doing';
-    // const [editable, setEditable] = useState(!fromOrdersPage || pathname == '/orders/doing' || pathname == '/tables/doing');
     const [order, setOrder] = useState<TPendingOrder | undefined>(inOrder ?? findWorkingOrder());
+    const [originalOrder, setOriginalOrder] = useState<TPendingOrder>();
     const [modifyItem, setModifyItem] = useState<TPendingItem>();
     const [modifyMode, setModifyMode] = useState<'new' | 'edit'>('new')
     const [showQty, setShowQty] = useState(false)
@@ -69,8 +67,6 @@ const FloatOrderForm = forwardRef<{ reload(): void },
     const [showMobileOutlet, setShowMobileOutlet] = useState<boolean>(false)
     const [editMode, setEditMode] = useState<'menu' | 'order'>('order')
     const [orderAfterPromo, setOrderAfterPromo] = useState<TPendingOrder | undefined>(inOrder ?? findWorkingOrder())
-    // const [kot, setKot] = useState<TPendingOrder>()
-    // const [loadKot, setLoadKot] = useState<boolean>(false)
     const [open, setOpen] = useState<boolean>(false);
     const [byChangeTable, setByChangeTable] = useState<boolean>(false)
     const [opening, setOpening] = useState<boolean>(false);
@@ -82,7 +78,6 @@ const FloatOrderForm = forwardRef<{ reload(): void },
     const [subTotal, setSubTotal] = useState<number>(0)
     const [tax, setTax] = useState<number>(0)
     const [discount, setDiscount] = useState<number>(0)
-    // const router = useRouter()
     const qtyRef = useRef<{
       getQty(): number
       reset(): void
@@ -213,7 +208,13 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       qtyRef.current?.reset();
     }
     useImperativeHandle(ref, () => ({
-      reload: () => setOrder(() => findWorkingOrder())
+      reload: () => setOrder(() => findWorkingOrder()),
+      clear: () => {
+        const od = findWorkingOrder();
+        if (!!od) removeWorkingOrder();
+        setOrder(undefined);
+        setOrderAfterPromo(undefined);
+      }
     }));
     useEffect(() => {
       if (!order) return;
@@ -286,14 +287,20 @@ const FloatOrderForm = forwardRef<{ reload(): void },
       if (!modifyItem || showModify) return;
       setShowModify(() => true)
     }, [modifyItem])
-    // useEffect(() => {
-    //   if (!order?.isConfirm) return;
-    //   // setLoadKot(() => true)
-    //   // fetchOrder(order.oid, d => {
-    //   //   // setKot(() => !d ? undefined : ({ ...d, isConfirm: true }));
-    //   //   setLoadKot(() => false)
-    //   // });
-    // }, [])
+    useEffect(() => {
+      if (!order?.isConfirm) return;
+      const originStr = localStorage.getItem("original-order");
+      let origin: TPendingOrder | undefined;
+      if (!!originStr) {
+        try {
+          origin = JSON.parse(originStr);
+        } catch { console.log(originStr) }
+      }
+      if (!origin || origin.items.length < 1 || origin.items.every(itm => itm.qty < 1)) {
+        localStorage.setItem("original-order", JSON.stringify(order));
+        setOriginalOrder(order);
+      } else setOriginalOrder(origin);
+    }, [])
     return (
       <div className={`float-order${show || opening ? ' show' : ''}`}>
         <div className={`float-order-menu${editMode == 'menu' ? ' open' : ''}`}>
@@ -324,7 +331,10 @@ const FloatOrderForm = forwardRef<{ reload(): void },
               <div className="table">Table: <span>{order?.table?.number ?? ''}</span></div>
               <div className="outlet">{order?.table?.outlet.name ?? 'Outlet'}</div>
             </div>
-            <div className="close-btn" onClick={onClose}>
+            <div className="close-btn" onClick={() => {
+              onClose();
+              localStorage.removeItem("original-order");
+            }}>
               <i className="ri-close-line"></i>
             </div>
           </div>
@@ -362,7 +372,23 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                     return checkedList.length == t.selectedModifyItems.length;
                   }
                   const tg = items.find(exist);
-                  if (!tg || (!!order.isConfirm && tg.hasModifiedItemGroup && !tg.isNew)) return;
+                  const original = originalOrder?.items.find(exist);
+                  if (!tg) return;
+                  if (!!order.isConfirm && !tg.isNew) {
+                    if (tg.hasModifiedItemGroup) return;
+                    if (!!original && original.qty >= tg.qty) {
+                      const notifyParas: TNotificationModel = {
+                        type: 'error',
+                        autoClose: true,
+                        duration: 5000,
+                        content: 'quantity cannot be less than quantity which already confirmed',
+                        id: v4(),
+                        isShowing: true
+                      }
+                      addNotification(notifyParas);
+                      return;
+                    }
+                  };
                   const notifyParams: TNotificationModel = {
                     type: 'error',
                     autoClose: true,
@@ -680,6 +706,7 @@ const FloatOrderForm = forwardRef<{ reload(): void },
                       sub: { oid: '', name: '' }
                     }
                     onStartRemove({ item: temp, mode: 'order' })
+                    localStorage.removeItem("original-order");
                   }}>
                     <span>Discard</span>
                   </button>}
@@ -723,7 +750,6 @@ const FloatOrderForm = forwardRef<{ reload(): void },
           onDeny={() => { }}
           msg={
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {/* {(pathname != '/tables/doing' || byChangeTable) && */}
               <PortableOutlet onSelect={(p) => {
                 if (!order) return;
                 const nO: TPendingOrder = {

@@ -42,11 +42,9 @@ export const getWorkingGroup = () => {
   return res ?? undefined;
 }
 export const saveWorkingSub = (sub: string, fromWhere: string) => {
-  // console.log(`save group from ${fromWhere}: `, sub);
   localStorage.setItem(workingSubKey, sub)
 }
 export const saveWorkingGroup = (group: string, fromWhere: string) => {
-  // console.log(`save group from ${fromWhere}: `, group);
   localStorage.setItem(workingGroupKey, group)
 }
 export const deleteWorkingSub = () => {

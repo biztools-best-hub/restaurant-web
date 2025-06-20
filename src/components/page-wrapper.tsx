@@ -21,11 +21,9 @@ const PageWrapper: FC<{ children: ReactNode }> = ({ children }) => {
     theme,
     apiUrl,
     updateApiUrl,
-    // updateSortBy,
     isPC,
     isApiReady,
     isMobileNotTab,
-    // showItemImage
   } = useSetting()
   const { addNotification } = useNotifications();
   const { accessToken,
@@ -50,16 +48,10 @@ const PageWrapper: FC<{ children: ReactNode }> = ({ children }) => {
       }
       const config = await r.json();
       let url: string | undefined = config['api-url']
-      // let sortBy = config['sort-by']
-      // let isShowItemImage = config['show-item-image']
       if (url) {
         if (url.endsWith('/')) url = url.substring(0, url.length - 1)
         updateApiUrl(url)
       }
-      // if (sortBy && sortBy == 'name' || sortBy == 'number') {
-      //   updateSortBy(sortBy)
-      // }
-      // showItemImage(!!isShowItemImage ? isShowItemImage.toLowerCase() == "true" : false)
     } catch (error) {
       console.log(error)
       removeAccessToken()

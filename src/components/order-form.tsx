@@ -26,6 +26,7 @@ import { useNotifications } from "@/store/notifications.store";
 type TOrderFormProps = {
   open: boolean
   onHide(): void
+  refresh: number,
   onAction(mode: "keep" | "confirm", nextJob: "show-tables" | "show-dismiss" | "show-modify", modifyItem?: TPendingItem): void
   afterModify(fn: () => void): void
   isNew: boolean
@@ -40,6 +41,7 @@ const OrderForm: FC<TOrderFormProps> = ({
   open,
   isNew,
   table,
+  refresh,
   onHide,
   onDecreaseQtyItem,
   onIncreaseQtyItem,
@@ -146,8 +148,6 @@ const OrderForm: FC<TOrderFormProps> = ({
         setCurrentLen(() => all.length)
         return;
       }
-      // console.log(itm);
-      //---
       const reserve = [...order.items];
       if (reserve.length > 0) {
         let canMerge = false;
@@ -344,6 +344,13 @@ const OrderForm: FC<TOrderFormProps> = ({
       });
     }
   }, [order]);
+  useEffect(() => {
+    if (refresh < 1) return;
+    const od = findWorkingOrder();
+    if (!!od) removeWorkingOrder();
+    setOrder(undefined)
+    setOrderAfterCheckPromo(undefined);
+  }, [refresh])
   return (
     <div className={`order-form${open ? ' open' : ''}`}>
       <Link href="/" hidden ref={toHomeLink} />
@@ -500,14 +507,6 @@ const OrderForm: FC<TOrderFormProps> = ({
             }
             return checkedList.length != t.selectedModifyItems.length;
           });
-          // if (res.length < 1) {
-          //   removeOrder(order.oid)
-          //   removeWorkingOrder()
-          //   setOrder(() => undefined);
-          //   setShowAlertRemoveItem(false);
-          //   onHide();
-          //   return;
-          // }
           const o = genNewOrder(res);
           if (!o) return;
           putWorkingOrder(o);

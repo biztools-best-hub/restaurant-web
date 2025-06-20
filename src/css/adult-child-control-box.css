@@ -105,8 +105,8 @@ input.child-input:focus {
     flex: 1;
   }
 
-  .adult-input,
+  /* .adult-input,
   .child-input {
     max-width: unset !important;
-  }
+  } */
 }
