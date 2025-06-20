@@ -8,8 +8,7 @@ import { useDataFromApi } from "@/store/data.store";
 type TPortableOutlet = TPortableOutletProps & { open: boolean }
 
 const PortableOutlet = forwardRef<TPortableOutlet, TPortableOutlet>(
-  ({ onSelect, order, open, forConfirm, byChangeTable }, _) => {
-    const [init, setInit] = useState<boolean>(false)
+  ({ onSelect, forConfirm, byChangeTable }, _) => {
     const {
       outlets,
       isOutletsFetched,
@@ -30,7 +29,6 @@ const PortableOutlet = forwardRef<TPortableOutlet, TPortableOutlet>(
         setCurrentOutlet(() => data[0]);
         setOrdersOfCurrentOutlet(() => getOrdersByOutlet(data[0]?.oid) ?? []);
       });
-      setInit(() => true)
     }, [])
     return (
       <div className="portable-outlet">

@@ -65,7 +65,6 @@ const CollapseItems = forwardRef<{
     }
     onCollapse?.();
   }, [open])
-  // useEffect(() => { console.log(item) }, [])
   return (
     <div className={`collapse-items${open ? ' open' : ''}`} onClick={(e: any) => {
       if (e.target.classList.contains('itm')) return;

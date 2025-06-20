@@ -18,7 +18,6 @@ import {
 import OrderItem from "./order-item";
 import '@/css/overlay-order-form.css';
 import { useOrders } from "@/store/orders.store";
-// import { useRouter } from "next/navigation";
 import { useDataFromApi } from "@/store/data.store";
 import Skeleton from "./skeleton";
 import { useCredential } from "@/store/credential.store";
@@ -52,15 +51,14 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
   }, ref) => {
     const { isOrderFormOpened } = useOrders();
     const [currentOrder, setCurrentOrder] = useState(order);
+    const [originalOrder, setOriginalOrder] = useState<TPendingOrder>();
     const [needCheckPrice, setNeedCheckPrice] = useState<boolean>(true)
     const [printingBill, setPrintingBill] = useState<boolean>(false)
-    // const [kot, setKot] = useState<TPendingOrder>()
     const [loadKot, setLoadKot] = useState<boolean>(false);
     const { addOrder, putWorkingOrder } = useOrders()
     const { takeAway, dineIn, checkingPromo, checkPromotion, printBill, fetchOrder } = useDataFromApi()
     const { user } = useCredential()
     const { addNotification } = useNotifications()
-    // const router = useRouter()
     const [opening, setOpening] = useState<boolean>(isOrderFormOpened() && doingPage);
     const [prevLen, setPrevLen] = useState<number>(currentOrder.items?.length ?? 0)
     const [currentLen, setCurrentLen] = useState<number>(currentOrder.items?.length ?? 0)
@@ -98,7 +96,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
         modifyAndCheck(o);
       },
       removeItem(itm) {
-        // console.log(itm);
         let items: TPendingItem[] = [...currentOrder.items];
         items = items.filter(t => {
           if (t.oid != itm.oid) return true;
@@ -113,7 +110,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
           }
           return checkedList.length != t.selectedModifyItems.length;
         });
-        console.log(items)
         const o: TPendingOrder = { ...currentOrder, items }
         modifyAndCheck(o)
       },
@@ -245,6 +241,7 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
     function closeForm() {
       setOpening(() => false);
       onClose();
+      localStorage.removeItem("original-order");
     }
     useEffect(() => {
       if (prevLen == currentLen) return;
@@ -315,11 +312,20 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
       })
     }, [currentOrder, needCheckPrice])
     useEffect(() => {
-      // console.log(currentOrder.items);
+      const originStr = localStorage.getItem("original-order");
+      let origin: TPendingOrder | undefined;
+      if (!!originStr) {
+        try {
+          origin = JSON.parse(originStr);
+        } catch { console.log(originStr) }
+      }
       if (order.isConfirm) {
+        if (!origin || origin.items.length < 1 || origin.items.every(itm => itm.qty < 1)) {
+          localStorage.setItem("original-order", JSON.stringify(order));
+          setOriginalOrder(order);
+        } else setOriginalOrder(origin);
         setLoadKot(() => true);
         fetchOrder(order.oid, o => {
-          // setKot(() => !o ? undefined : ({ ...o, isConfirm: true }));
           setLoadKot(() => false);
         })
       }
@@ -374,7 +380,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                     canModify={!!initialEdit && !!o.isNew}
                     onIncr={(oid, selectedItems, rowOid) => {
                       const items = [...currentOrder.items];
-                      console.log(items);
                       const needQty = items.find(v => v.oid == oid)?.askQty;
                       const tg = items.find(t => {
                         if (!!rowOid) return t.rowOid == rowOid;
@@ -431,7 +436,23 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                         return checkedList.length == t.selectedModifyItems.length;
                       }
                       const tg = items.find(exist);
-                      if (!tg || (!!order.isConfirm && tg.hasModifiedItemGroup && !tg.isNew)) return;
+                      const original = originalOrder?.items.find(exist);
+                      if (!tg) return;
+                      if (!!order.isConfirm && !tg.isNew) {
+                        if (tg.hasModifiedItemGroup) return;
+                        if (!!original && original.qty >= tg.qty) {
+                          const notifyParas: TNotificationModel = {
+                            type: 'error',
+                            autoClose: true,
+                            duration: 5000,
+                            content: 'quantity cannot be less than quantity which already confirmed',
+                            id: v4(),
+                            isShowing: true
+                          }
+                          addNotification(notifyParas);
+                          return;
+                        }
+                      };
                       if (needQty) tg.askQty = true;
                       if (tg.askQty) {
                         onDecreaseOnQtyItem(tg);
@@ -447,16 +468,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                       }
                       if (tg.qty < 2 && (tg.isNew || (!!order.isConfirm && !tg.hasModifiedItemGroup))) {
                         items = items.filter(t => !exist(t));
-                        // if (items.length < 1) {
-                        //   if (order.isConfirm) {
-                        //     notifyParams.content = "this order has been confirmed, must have at least one item remain";
-                        //     addNotification(notifyParams)
-                        //     return;
-                        //   }
-                        //   setRemoveMode(() => 'order')
-                        //   onStartRemove(tg, 'order')
-                        //   return;
-                        // }
                         setRemoveMode(() => 'item')
                         onStartRemove(tg, 'item')
                         return;
@@ -547,7 +558,10 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                   <button
                     type="button"
                     className="btn-discard-order"
-                    onClick={onStartDiscard}>
+                    onClick={() => {
+                      onStartDiscard();
+                      localStorage.removeItem("original-order");
+                    }}>
                     <i className="ri-delete-bin-2-fill"></i>
                     <span>Discard</span>
                   </button>}
@@ -595,7 +609,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                       if (!currentOrder.table) {
                         takeAway(currentOrder, () => {
                           window.location.href = `/${fromRoute}`;
-                          //  router.replace(`/${fromRoute}`;
                         })
                         return;
                       }
@@ -613,7 +626,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                       }
                       dineIn(currentOrder, () => {
                         window.location.href = `/${fromRoute}`;
-                        // router.replace(`/${fromRoute}`)
                       });
                       return;
                     }
@@ -678,7 +690,6 @@ const OverlayOrderForm = forwardRef<TOverlayOrderFormRefs, TOverlayOrderFormProp
                     }
                     putWorkingOrder(currentOrder)
                     window.location.href = `/${fromRoute}/doing`;
-                    // router.push(`/${fromRoute}/doing`)
                   }}>
                   Edit or order more
                 </button>

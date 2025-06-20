@@ -160,7 +160,6 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
       if (initialEdit) {
         removeWorkingOrder()
         window.location.href = `/${fromRoute}`;
-        // router.replace(`/${fromRoute}`)
       }
     }, 200);
   }
@@ -174,14 +173,12 @@ const OverlayMenuAndOrder: FC<OverlayMenuAndOrderProps> = ({
     close(true);
     removeWorkingOrder();
     window.location.href = `/${fromRoute}`;
-    // router.replace(`/${fromRoute}`);
   }
   function onQtyConfirm(itm?: TPendingItem) {
     const qty = qtyRef.current?.getQty() ?? 0;
     if (qty > 0) {
       if (!itm && qtyItem) itm = qtyItem;
       if (itm) {
-        // console.log(itm);
         overlayFormRef.current?.addItem({ ...itm, qty }, true)
         setQtyItem(undefined);
       }

@@ -18,7 +18,6 @@ const OrderItem: FC<{
   onModify(itm: TPendingItem): void
 }> = ({ itm, onDecr, onIncr, disableEdit, onModify, canModify, promoItem, afterMounted, onRemark }) => {
   const { isShowItemImage } = useSetting()
-  // const hideMain = useRef<boolean>(itm.selectedModifyItems.length > 0 && itm.selectedModifyItems.some(v => v.hideMainItem));
   function optimizeModifyItemName(itm: TKitItem & { group: { oid: string, name: string }, qty: number }) {
     const chunks = itm.name.split('-');
     if (chunks.length < 2) return itm.name;
@@ -59,12 +58,9 @@ const OrderItem: FC<{
   }
   useEffect(() => {
     afterMounted?.();
-    // console.log(hideMain.current);
   }, [])
-  // useEffect(() => { console.log(hideMain.current) }, [hideMain.current])
   return (
     <div className="order-item">
-      {/* {!hideMain.current && */}
       <div className="main-part">
         <div className="main-item">
           {isShowItemImage &&
@@ -141,7 +137,6 @@ const OrderItem: FC<{
       {
         itm.hasModifiedItemGroup &&
         <div className="modify-part">
-          {/* <div className={`in-modify-part${hideMain.current ? ' hide-main' : ''}`}> */}
           <div className={`in-modify-part`}>
             {itm.hasModifiedItemGroup &&
               itm.selectedModifyItems.map((m, i) => {
@@ -160,7 +155,6 @@ const OrderItem: FC<{
                       </span>
                       <span className="modify-qty">&times;{m.qty * itm.qty}</span>
                     </div>
-                    {/* {(hideMain.current || m.charged) && <div>{optimizePrice(m)}</div>} */}
                     {m.charged && <div>{optimizePrice(m)}</div>}
                     <div className={`remark-sect${!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() ? ' clickable' : ''}`}>
                       <i className="ri-edit-2-fill"></i>
@@ -181,7 +175,6 @@ const OrderItem: FC<{
                         </span>
                         <span className="modify-qty">&times;{m.qty * itm.qty}</span>
                       </div>
-                      {/* {(hideMain.current || m.charged) && <div>{optimizePrice(m)}</div>} */}
                       {m.charged && <div>{optimizePrice(m)}</div>}
                       <div className={`remark-sect${!disableEdit && (itm.isNew || !itm.hasModifiedItemGroup) && checkHappyHour() ? ' clickable' : ''}`}>
                         <i className="ri-edit-2-fill"></i>

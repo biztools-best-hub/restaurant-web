@@ -22,7 +22,6 @@ import {
 import { useSetting } from "./setting.store";
 import { optimizeName } from "@/utilities";
 import { useCredential } from "./credential.store";
-// import { useRouter } from "next/navigation";
 import { useNotifications } from "./notifications.store";
 import { v4 } from "uuid";
 
@@ -79,7 +78,6 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
   const [modifyFetching, setModifyFetching] = useState<boolean>(false)
   const [checkingPromo, setCheckingPromo] = useState<boolean>(false)
   const [searchItems, setSearchItems] = useState<TMenuItem[]>();
-  // const router = useRouter();
   const { sortBy, apiUrl } = useSetting()
   const { deviceId,
     refreshToken,
@@ -127,7 +125,6 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
           removeAccessToken();
           updateUser(undefined);
           window.location.href = "/";
-          // return router.replace("/")
         }
         console.log(res);
         if (p.ignoreError && !!p.fallBackData) return p.onSuccess(p.fallBackData);
@@ -362,7 +359,6 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
     updateItemData(temp)
   }
   function updateItemDataFromApi(data: TMainGroupItem[]) {
-    // console.log(data);
     let extendData: TDataExtend[] = data.map(d => ({
       ...d,
       subGroups: d.subGroups?.map(s => ({
@@ -381,7 +377,6 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
   }
   function sortDataCore(data: TDataExtend[]) {
     const sort = sortBy;
-    // if (!itemData) return;
     const temp = [...data];
     for (let i = 0; i < temp.length; i++) {
       if (!temp[i].subGroups) continue;
@@ -393,7 +388,6 @@ export const DataStoreProvider: FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
     return temp;
-    // setItemData(() => temp);
   }
   function sortData(sort?: 'name' | 'number') {
     if (!sort) sort = sortBy;

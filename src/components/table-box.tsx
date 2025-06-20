@@ -21,11 +21,6 @@ const TableBox = forwardRef<any, TTableBoxProps>(({
     getOrdersByTable(table.oid, outlet.oid))
   const [init, setInit] = useState<boolean>(false);
   const [hasPending, setHasPending] = useState<boolean>(orders.length > 0)
-  // function isToDay(d: Date) {
-  //   const date = new Date(d);
-  //   const today = new Date();
-  //   return date.getFullYear() == today.getFullYear() && date.getMonth() == today.getMonth() && date.getDate() == today.getDate();
-  // }
   useEffect(() => {
     if (!init) return;
     setOrders(() => {

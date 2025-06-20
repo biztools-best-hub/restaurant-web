@@ -66,7 +66,7 @@ const LoginForm: FC = () => {
       updateRefreshToken(data.refreshToken)
       updateDeviceId(data.deviceId)
       updateUser(data.user);
-      window.location.href = "/";
+      window.location.href = "/doing-order";
     } catch (e) {
       addNotification({
         id: v4(),
@@ -94,9 +94,7 @@ const LoginForm: FC = () => {
             <label htmlFor="login-username">Username</label>
             <input
               ref={usernameRef}
-              // value={username}
               disabled={loading}
-              // onInput={onUsernameInput}
               type="text"
               id="login-username"
               placeholder="username"
@@ -109,15 +107,12 @@ const LoginForm: FC = () => {
               type="password"
               id="login-password"
               disabled={loading}
-              // onInput={onPasswordInput}
               placeholder="password"
               name="login-password" />
           </div>
         </div>
         <div className="form-foot">
           <button
-            // disabled={!username || !password || loading}
-            // disabled={initDisable || loading}
             disabled={loading}
             type="submit"
             className="login-button">

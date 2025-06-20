@@ -7,7 +7,6 @@ import '@/css/side-bar.css'
 import { useCredential } from "@/store/credential.store";
 import {
   usePathname
-  // , useRouter
 } from "next/navigation";
 import { useCustomNavigation } from "@/store/navigation.store";
 import { useOrders } from "@/store/orders.store";
@@ -27,7 +26,6 @@ const SideBar: FC = () => {
     updateUser,
     user,
   } = useCredential()
-  // const router = useRouter()
   const pathName = usePathname()
   function changePage(page: string) {
     navigate(page)
@@ -40,7 +38,6 @@ const SideBar: FC = () => {
     updateUser(undefined)
     out();
     window.location.href = "/";
-    // router.replace("/")
   }
   return (
     <div className="side-bar">
@@ -64,7 +61,7 @@ const SideBar: FC = () => {
               removeWorkingOrder()
               removeWorkingGroup()
               removeWorkingSub()
-              changePage('/');
+              changePage('/doing-order');
             }}
             className={`side-bar-item${pathName == '/' ? ' active' : ''}`}>
             <img src="/menu.png" alt="menu" />

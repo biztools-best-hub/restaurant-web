@@ -2,7 +2,6 @@
 import { deleteWorkingGroup, deleteWorkingSub } from "@/utilities";
 import {
   usePathname
-  // , useRouter
 } from "next/navigation";
 import {
   createContext,
@@ -30,7 +29,6 @@ export const NavigationStoreContext = createContext<TNavigationStoreContextProps
 export const NavigationProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [canNavigate, setCanNavigate] = useState<boolean>(true)
   const [pendingPath, setPendingPath] = useState<string>()
-  // const router = useRouter()
   const path = usePathname()
   const navigatingRef = useRef(() => { })
   function onNavigating(fn: () => void) {
@@ -41,7 +39,6 @@ export const NavigationProvider: FC<{ children: ReactNode }> = ({ children }) =>
     if (canNavigate) {
       deleteWorkingGroup();
       deleteWorkingSub();
-      // router.push(path)
       window.location.href = path;
       return
     }
